@@ -61,7 +61,7 @@ label.s{display:flex;justify-content:space-between;align-items:center;gap:10px;p
 </div>
 <script>
 const K="finbud.v1",CATS={food:["🍜","Ăn uống"],move:["🛵","Di chuyển"],study:["📚","Học tập"],shop:["🛍️","Mua sắm"],other:["💸","Khác"]};
-let S={set:null,tx:[],tab:"home"},dr=null,tm=null,lock=false;
+let S={set:null,tx:[],tab:"home"},dr=null,tm=null,lock=false,isListening=false;
 try{const j=JSON.parse(localStorage.getItem(K)||"null");if(j)S={...S,set:j.set,tx:j.tx||[]}}catch(e){}
 const save=()=>{try{localStorage.setItem(K,JSON.stringify({set:S.set,tx:S.tx}))}catch(e){}};
 const $=s=>document.querySelector(s),pad=n=>String(n).padStart(2,"0"),sum=a=>a.reduce((x,t)=>x+t.a,0);
@@ -122,13 +122,13 @@ function render(){
   <label class="s">Ngân sách khả dụng<input type="number" inputmode="numeric" value="${S.set.budget}" onchange="S.set.budget=+this.value||0;save();toast('Đã lưu')"></label>
   <label class="s">Chi phí cố định<input type="number" inputmode="numeric" value="${S.set.fixed}" onchange="S.set.fixed=+this.value||0;save();toast('Đã lưu')"></label>
   <div class="mut">Hạn mức ngày = (Ngân sách − Chi phí cố định − Đã chi) ÷ số ngày còn lại</div></div>
-  <h2>Thông báo ngân hàng</h2><div class="card mut">Tự động đọc thông báo (MB, Vietcombank, MoMo…) cần dịch vụ native Android và chưa có trong bản này. Tạm thời, bạn dán nội dung thông báo vào ô “Nói / gõ”.</div>
+  <h2>Thông báo ngân hàng <span class="tag" style="font-size:11px;padding:2px 8px;vertical-align:middle">Coming soon</span></h2><div class="card mut">Tính năng tự động đọc thông báo biến động số dư (MB, Vietcombank, MoMo…) đang được phát triển cho phiên bản tiếp theo. Tạm thời, bạn có thể dán nội dung thông báo vào ô “Nói / gõ”.</div>
   <button class="btn r" style="margin-top:14px;width:100%" onclick="if(confirm('Xóa toàn bộ dữ liệu?')){S.set=null;S.tx=[];save();render()}">Xóa toàn bộ dữ liệu</button>`;
  }
 }
 function del(id){if(confirm("Xóa giao dịch này?")){S.tx=S.tx.filter(t=>t.id!==id);save();render()}}
 function open(h,lk){lock=!!lk;$("#panel").innerHTML=h;$("#sheet").classList.add("show")}
-function closeSheet(){$("#sheet").classList.remove("show");clearInterval(tm);dr=null}
+function closeSheet(){$("#sheet").classList.remove("show");clearInterval(tm);dr=null;if(isListening&&window.Capacitor?.Plugins?.VoskVoice){window.Capacitor.Plugins.VoskVoice.stopListening();isListening=false;}}
 function setup(){open(`<h1>👋 Chào mừng đến FinBud</h1><div class="mut">Thiết lập ngân sách tháng này để biết mỗi ngày được tiêu bao nhiêu.</div>
  <label class="s">Tên của bạn<input id="sn" placeholder="Khanh"></label>
  <label class="s">Ngân sách tháng (đ)<input id="sb" type="number" inputmode="numeric" value="5000000"></label>
@@ -146,20 +146,89 @@ function showRes(d,target,auto){dr=d;let n=3;clearInterval(tm);
   tm=setInterval(()=>{n--;if(n<=0)commit();else cd.textContent="Tự lưu sau "+n+"s…"},1000)}}
 function commit(){if(!dr)return;const a=+$("#ra").value;if(!(a>0)){toast("Số tiền chưa hợp lệ");return}
  S.tx.unshift({id:Date.now(),a,c:$("#rc").value,n:$("#rn").value.trim()||"Chi tiêu",s:dr.s,d:ds(new Date())});save();closeSheet();render();toast("✅ Đã lưu · hạn mức đã cập nhật")}
-const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+/* --- Vosk Offline Voice Recognition & Web Speech Fallback (Bước 5) --- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+async function initVosk() {
+ const v = window.Capacitor?.Plugins?.VoskVoice;
+ if (!v) return;
+ console.log("Đang nạp mô hình Vosk Offline...");
+ try {
+  await v.initModel();
+  console.log("Vosk model đã sẵn sàng!");
+ } catch (e) {
+  console.warn("Lỗi nạp Vosk model:", e);
+ }
+ v.addListener("onVoiceResult", data => {
+  const inp = $("#qi");
+  if (inp && data.text) inp.value = data.text;
+  if (data.isFinal) {
+   analyze("Voice Offline");
+   v.stopListening();
+   isListening = false;
+   const wv = $("#wv"), btn = $("#mic");
+   if (wv) wv.classList.add("off");
+   if (btn) btn.textContent = "🎤";
+  }
+ });
+}
+if (document.readyState === "loading") {
+ window.addEventListener("DOMContentLoaded", initVosk);
+} else {
+ initVosk();
+}
+
 function quick(){
+ const v = window.Capacitor?.Plugins?.VoskVoice;
+ const hint = v ? "Bấm 🎤 để nói offline (Vosk AI tiếng Việt)." : (SR ? "Bấm 🎤 để nói." : "Mẹo: bấm micro trên bàn phím để đọc, rồi bấm Phân tích.");
  open(`<h1>🎤 Nhập nhanh</h1><div class="mut">Nói hoặc gõ, ví dụ “ăn bún bò 35k”, “gửi xe hai chục”, “mua áo 5 xị”. Cũng dán được nội dung thông báo ngân hàng.</div>
  <div class="wave off" id="wv">${"<i></i>".repeat(14)}</div>
  <div style="display:flex;gap:8px"><input id="qi" placeholder="ăn phở 50 nghìn" enterkeyhint="done"><button class="btn" id="mic" style="width:56px">🎤</button></div>
- <div class="mut" style="margin:6px 0">${SR?"Bấm 🎤 để nói.":"Mẹo: bấm micro trên bàn phím để đọc, rồi bấm Phân tích."}</div>
+ <div class="mut" style="margin:6px 0">${hint}</div>
  <button class="btn" style="width:100%" onclick="analyze()">Phân tích</button><div id="qr"></div><button class="btn g" style="width:100%;margin-top:10px" onclick="closeSheet()">Đóng</button>`);
- $("#qi").onkeydown=e=>{if(e.key==="Enter")analyze()};
- $("#mic").onclick=()=>{
-  if(!SR){toast("Máy chưa hỗ trợ nhận giọng nói trong app. Dùng micro bàn phím nhé");$("#qi").focus();return}
-  const r=new SR(),wv=$("#wv");r.lang="vi-VN";wv.classList.remove("off");
-  r.onresult=e=>{$("#qi").value=e.results[0][0].transcript;analyze("Voice")};
-  r.onerror=()=>toast("Không nghe rõ, bạn thử lại nhé");r.onend=()=>wv.classList.add("off");
-  try{r.start()}catch(e){wv.classList.add("off")}};
+ $("#qi").onkeydown = e => { if (e.key === "Enter") analyze(); };
+ $("#mic").onclick = async () => {
+  const v = window.Capacitor?.Plugins?.VoskVoice;
+  const wv = $("#wv"), micBtn = $("#mic");
+  if (v) {
+   if (!isListening) {
+    try {
+     await v.startListening();
+     isListening = true;
+     wv.classList.remove("off");
+     micBtn.textContent = "⏹️";
+     toast("Đang lắng nghe offline...");
+    } catch (err) {
+     toast("Lỗi bật mic: " + (err.message || err));
+    }
+   } else {
+    await v.stopListening();
+    isListening = false;
+    wv.classList.add("off");
+    micBtn.textContent = "🎤";
+   }
+   return;
+  }
+  if (!SR) {
+   toast("Máy chưa hỗ trợ nhận giọng nói trong app. Dùng micro bàn phím nhé");
+   $("#qi").focus();
+   return;
+  }
+  const r = new SR();
+  r.lang = "vi-VN";
+  wv.classList.remove("off");
+  r.onresult = e => {
+   $("#qi").value = e.results[0][0].transcript;
+   analyze("Voice");
+  };
+  r.onerror = () => toast("Không nghe rõ, bạn thử lại nhé");
+  r.onend = () => wv.classList.add("off");
+  try {
+   r.start();
+  } catch (e) {
+   wv.classList.add("off");
+  }
+ };
 }
 function analyze(src){const t=$("#qi").value.trim();if(!t)return;const p=parseAmt(t);
  if(!p.a){$("#qr").innerHTML=`<div class="res">😕 Chưa thấy số tiền. Thử nói rõ hơn, ví dụ “cà phê 15k”.</div>`;return}
