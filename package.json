@@ -1,0 +1,18 @@
+{
+  "name": "finbud-app",
+  "version": "1.0.0",
+  "description": "FinBud - Trợ lý quản lý chi tiêu thông minh cho sinh viên",
+  "private": true,
+  "scripts": {
+    "sync": "cap sync android",
+    "build:apk": "cap sync android && cd android && ./gradlew assembleDebug"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/cli": "^8.6.0",
+    "@capacitor/core": "^8.6.0"
+  }
+}

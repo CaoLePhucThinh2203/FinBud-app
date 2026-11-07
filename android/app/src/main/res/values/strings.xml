@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">FinBud</string>
+    <string name="title_activity_main">FinBud</string>
+    <string name="package_name">com.tnn.finbud</string>
+    <string name="custom_url_scheme">com.tnn.finbud</string>
+</resources>
