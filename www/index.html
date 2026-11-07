@@ -149,86 +149,118 @@ function commit(){if(!dr)return;const a=+$("#ra").value;if(!(a>0)){toast("Số t
 /* --- Vosk Offline Voice Recognition & Web Speech Fallback (Bước 5) --- */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
+let isModelReady = false;
+let isInitializingModel = false;
+
 async function initVosk() {
- const v = window.Capacitor?.Plugins?.VoskVoice;
- if (!v) return;
- console.log("Đang nạp mô hình Vosk Offline...");
- try {
-  await v.initModel();
-  console.log("Vosk model đã sẵn sàng!");
- } catch (e) {
-  console.warn("Lỗi nạp Vosk model:", e);
- }
- v.addListener("onVoiceResult", data => {
-  const inp = $("#qi");
-  if (inp && data.text) inp.value = data.text;
-  if (data.isFinal) {
-   analyze("Voice Offline");
-   v.stopListening();
-   isListening = false;
-   const wv = $("#wv"), btn = $("#mic");
-   if (wv) wv.classList.add("off");
-   if (btn) btn.textContent = "🎤";
+  const v = window.Capacitor?.Plugins?.VoskVoice;
+  if (!v || isModelReady || isInitializingModel) return;
+
+  isInitializingModel = true;
+  console.log("Đang nạp mô hình Vosk Offline...");
+  try {
+    await v.initModel();
+    isModelReady = true;
+    console.log("Vosk model đã sẵn sàng!");
+  } catch (e) {
+    console.warn("Lỗi nạp Vosk model:", e);
+  } finally {
+    isInitializingModel = false;
   }
- });
+
+  // Lắng nghe kết quả giọng nói
+  v.removeAllListeners?.();
+  v.addListener("onVoiceResult", (data) => {
+    const inp = $("#qi");
+    if (inp && data.text) inp.value = data.text;
+    if (data.isFinal) {
+      analyze("Voice Offline");
+      v.stopListening();
+      isListening = false;
+      const wv = $("#wv"), btn = $("#mic");
+      if (wv) wv.classList.add("off");
+      if (btn) btn.textContent = "🎤";
+    }
+  });
 }
+
+// Tự động khởi tạo sau khi trang web nạp xong
 if (document.readyState === "loading") {
- window.addEventListener("DOMContentLoaded", initVosk);
+  window.addEventListener("DOMContentLoaded", () => setTimeout(initVosk, 1000));
 } else {
- initVosk();
+  setTimeout(initVosk, 1000);
+}
+
+// Logic bật / tắt Micro
+async function toggleOfflineMic() {
+  const v = window.Capacitor?.Plugins?.VoskVoice;
+  const wv = $("#wv");
+  const micBtn = $("#mic");
+
+  if (!isModelReady) {
+    toast("Đang tải mô hình tiếng Việt, vui lòng đợi 3 giây...");
+    try {
+      await initVosk();
+    } catch (err) {
+      toast("Không thể nạp mô hình: " + (err.message || err));
+      return;
+    }
+  }
+
+  if (!isListening) {
+    try {
+      await v.startListening();
+      isListening = true;
+      if (wv) wv.classList.remove("off");
+      if (micBtn) micBtn.textContent = "⏹️";
+      toast("Đang lắng nghe offline...");
+    } catch (err) {
+      toast("Mô hình đang khởi động, hãy thử bấm lại sau 2 giây");
+    }
+  } else {
+    await v.stopListening();
+    isListening = false;
+    if (wv) wv.classList.add("off");
+    if (micBtn) micBtn.textContent = "🎤";
+  }
 }
 
 function quick(){
- const v = window.Capacitor?.Plugins?.VoskVoice;
- const hint = v ? "Bấm 🎤 để nói offline (Vosk AI tiếng Việt)." : (SR ? "Bấm 🎤 để nói." : "Mẹo: bấm micro trên bàn phím để đọc, rồi bấm Phân tích.");
- open(`<h1>🎤 Nhập nhanh</h1><div class="mut">Nói hoặc gõ, ví dụ “ăn bún bò 35k”, “gửi xe hai chục”, “mua áo 5 xị”. Cũng dán được nội dung thông báo ngân hàng.</div>
- <div class="wave off" id="wv">${"<i></i>".repeat(14)}</div>
- <div style="display:flex;gap:8px"><input id="qi" placeholder="ăn phở 50 nghìn" enterkeyhint="done"><button class="btn" id="mic" style="width:56px">🎤</button></div>
- <div class="mut" style="margin:6px 0">${hint}</div>
- <button class="btn" style="width:100%" onclick="analyze()">Phân tích</button><div id="qr"></div><button class="btn g" style="width:100%;margin-top:10px" onclick="closeSheet()">Đóng</button>`);
- $("#qi").onkeydown = e => { if (e.key === "Enter") analyze(); };
- $("#mic").onclick = async () => {
   const v = window.Capacitor?.Plugins?.VoskVoice;
-  const wv = $("#wv"), micBtn = $("#mic");
-  if (v) {
-   if (!isListening) {
-    try {
-     await v.startListening();
-     isListening = true;
-     wv.classList.remove("off");
-     micBtn.textContent = "⏹️";
-     toast("Đang lắng nghe offline...");
-    } catch (err) {
-     toast("Lỗi bật mic: " + (err.message || err));
+  const hint = v ? "Bấm 🎤 để nói offline (Vosk AI tiếng Việt)." : (SR ? "Bấm 🎤 để nói." : "Mẹo: bấm micro trên bàn phím để đọc, rồi bấm Phân tích.");
+  open(`<h1>🎤 Nhập nhanh</h1><div class="mut">Nói hoặc gõ, ví dụ “ăn bún bò 35k”, “gửi xe hai chục”, “mua áo 5 xị”. Cũng dán được nội dung thông báo ngân hàng.</div>
+  <div class="wave off" id="wv">${"<i></i>".repeat(14)}</div>
+  <div style="display:flex;gap:8px"><input id="qi" placeholder="ăn phở 50 nghìn" enterkeyhint="done"><button class="btn" id="mic" style="width:56px">🎤</button></div>
+  <div class="mut" style="margin:6px 0">${hint}</div>
+  <button class="btn" style="width:100%" onclick="analyze()">Phân tích</button><div id="qr"></div><button class="btn g" style="width:100%;margin-top:10px" onclick="closeSheet()">Đóng</button>`);
+  $("#qi").onkeydown = e => { if (e.key === "Enter") analyze(); };
+  $("#mic").onclick = async () => {
+    const v = window.Capacitor?.Plugins?.VoskVoice;
+    if (v) {
+      await toggleOfflineMic();
+      return;
     }
-   } else {
-    await v.stopListening();
-    isListening = false;
-    wv.classList.add("off");
-    micBtn.textContent = "🎤";
-   }
-   return;
-  }
-  if (!SR) {
-   toast("Máy chưa hỗ trợ nhận giọng nói trong app. Dùng micro bàn phím nhé");
-   $("#qi").focus();
-   return;
-  }
-  const r = new SR();
-  r.lang = "vi-VN";
-  wv.classList.remove("off");
-  r.onresult = e => {
-   $("#qi").value = e.results[0][0].transcript;
-   analyze("Voice");
+    if (!SR) {
+      toast("Máy chưa hỗ trợ nhận giọng nói trong app. Dùng micro bàn phím nhé");
+      $("#qi").focus();
+      return;
+    }
+    const r = new SR();
+    r.lang = "vi-VN";
+    const wv = $("#wv");
+    wv.classList.remove("off");
+    r.onresult = e => {
+      $("#qi").value = e.results[0][0].transcript;
+      analyze("Voice");
+    };
+    r.onerror = () => toast("Không nghe rõ, bạn thử lại nhé");
+    r.onend = () => wv.classList.add("off");
+    try {
+      r.start();
+    } catch (e) {
+      wv.classList.add("off");
+    }
   };
-  r.onerror = () => toast("Không nghe rõ, bạn thử lại nhé");
-  r.onend = () => wv.classList.add("off");
-  try {
-   r.start();
-  } catch (e) {
-   wv.classList.add("off");
-  }
- };
 }
 function analyze(src){const t=$("#qi").value.trim();if(!t)return;const p=parseAmt(t);
  if(!p.a){$("#qr").innerHTML=`<div class="res">😕 Chưa thấy số tiền. Thử nói rõ hơn, ví dụ “cà phê 15k”.</div>`;return}
