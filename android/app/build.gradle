@@ -43,6 +43,9 @@ dependencies {
 
     implementation 'com.alphacephei:vosk-android:0.3.47'
     implementation 'net.java.dev.jna:jna:5.13.0@aar'
+
+    // OCR hóa đơn trên máy (model đóng gói sẵn trong APK, ~+38 MB, chạy được khi không có mạng)
+    implementation 'com.google.mlkit:text-recognition:16.0.0'
 }
 
 apply from: 'capacitor.build.gradle'

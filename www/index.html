@@ -46,6 +46,7 @@ input,select{width:100%;border:1px solid var(--line);background:var(--bg);color:
 .laser{position:absolute;left:30px;right:30px;height:3px;background:#3ef0c0;box-shadow:0 0 12px #3ef0c0;top:20px;animation:l 1.2s linear infinite;display:none;z-index:3}.scanning .laser{display:block}@keyframes l{to{top:205px}}
 .toast{position:absolute;left:50%;bottom:calc(84px + var(--sab));transform:translateX(-50%);background:#14211e;color:#fff;padding:9px 14px;border-radius:20px;font-size:13px;opacity:0;transition:.3s;z-index:9;pointer-events:none;max-width:90%;text-align:center}.toast.show{opacity:1}
 label.s{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;font-size:14px}label.s input{width:150px;text-align:right}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}.chip{border:1px solid var(--line);background:var(--card);color:var(--tx);border-radius:20px;padding:7px 12px;font-size:13px}
 </style>
 </head>
 <body>
@@ -59,6 +60,7 @@ label.s{display:flex;justify-content:space-between;align-items:center;gap:10px;p
  <div class="sheet" id="sheet"><div class="panel" id="panel"></div></div>
  <div class="toast" id="toast"></div>
 </div>
+<script src="receipt-engine.js"></script>
 <script>
 const K="finbud.v1",CATS={food:["🍜","Ăn uống"],move:["🛵","Di chuyển"],study:["📚","Học tập"],shop:["🛍️","Mua sắm"],other:["💸","Khác"]};
 let S={set:null,tx:[],tab:"home"},dr=null,tm=null,lock=false,isListening=false;
@@ -145,122 +147,100 @@ function showRes(d,target,auto){dr=d;let n=3;clearInterval(tm);
   document.querySelectorAll(".res input,.res select").forEach(e=>e.addEventListener("focus",stop));
   tm=setInterval(()=>{n--;if(n<=0)commit();else cd.textContent="Tự lưu sau "+n+"s…"},1000)}}
 function commit(){if(!dr)return;const a=+$("#ra").value;if(!(a>0)){toast("Số tiền chưa hợp lệ");return}
- S.tx.unshift({id:Date.now(),a,c:$("#rc").value,n:$("#rn").value.trim()||"Chi tiêu",s:dr.s,d:ds(new Date())});save();closeSheet();render();toast("✅ Đã lưu · hạn mức đã cập nhật")}
+ S.tx.unshift({id:Date.now(),a,c:$("#rc").value,n:$("#rn").value.trim()||"Chi tiêu",s:dr.s,d:dr.d||ds(new Date())});save();closeSheet();render();toast("✅ Đã lưu · hạn mức đã cập nhật")}
 /* --- Vosk Offline Voice Recognition & Web Speech Fallback (Bước 5) --- */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-let isModelReady = false;
-let isInitializingModel = false;
-
 async function initVosk() {
-  const v = window.Capacitor?.Plugins?.VoskVoice;
-  if (!v || isModelReady || isInitializingModel) return;
-
-  isInitializingModel = true;
-  console.log("Đang nạp mô hình Vosk Offline...");
-  try {
-    await v.initModel();
-    isModelReady = true;
-    console.log("Vosk model đã sẵn sàng!");
-  } catch (e) {
-    console.warn("Lỗi nạp Vosk model:", e);
-  } finally {
-    isInitializingModel = false;
+ const v = window.Capacitor?.Plugins?.VoskVoice;
+ if (!v) return;
+ console.log("Đang nạp mô hình Vosk Offline...");
+ try {
+  await v.initModel();
+  console.log("Vosk model đã sẵn sàng!");
+ } catch (e) {
+  console.warn("Lỗi nạp Vosk model:", e);
+  toast("Lỗi nạp Vosk: " + (e.message || e)); 
+ }
+ v.addListener("onVoiceResult", data => {
+  const inp = $("#qi");
+  if (inp && data.text) inp.value = data.text;
+  if (data.isFinal) {
+   analyze("Voice Offline");
+   v.stopListening();
+   isListening = false;
+   const wv = $("#wv"), btn = $("#mic");
+   if (wv) wv.classList.add("off");
+   if (btn) btn.textContent = "🎤";
   }
-
-  // Lắng nghe kết quả giọng nói
-  v.removeAllListeners?.();
-  v.addListener("onVoiceResult", (data) => {
-    const inp = $("#qi");
-    if (inp && data.text) inp.value = data.text;
-    if (data.isFinal) {
-      analyze("Voice Offline");
-      v.stopListening();
-      isListening = false;
-      const wv = $("#wv"), btn = $("#mic");
-      if (wv) wv.classList.add("off");
-      if (btn) btn.textContent = "🎤";
-    }
-  });
+ });
+  v.addListener("onError", e => {
+  toast("Lỗi mic: " + e.error);
+  isListening = false;
+  const wv = $("#wv"), btn = $("#mic");
+  if (wv) wv.classList.add("off");
+  if (btn) btn.textContent = "🎤";
+ });
 }
-
-// Tự động khởi tạo sau khi trang web nạp xong
 if (document.readyState === "loading") {
-  window.addEventListener("DOMContentLoaded", () => setTimeout(initVosk, 1000));
+ window.addEventListener("DOMContentLoaded", initVosk);
 } else {
-  setTimeout(initVosk, 1000);
-}
-
-// Logic bật / tắt Micro
-async function toggleOfflineMic() {
-  const v = window.Capacitor?.Plugins?.VoskVoice;
-  const wv = $("#wv");
-  const micBtn = $("#mic");
-
-  if (!isModelReady) {
-    toast("Đang tải mô hình tiếng Việt, vui lòng đợi 3 giây...");
-    try {
-      await initVosk();
-    } catch (err) {
-      toast("Không thể nạp mô hình: " + (err.message || err));
-      return;
-    }
-  }
-
-  if (!isListening) {
-    try {
-      await v.startListening();
-      isListening = true;
-      if (wv) wv.classList.remove("off");
-      if (micBtn) micBtn.textContent = "⏹️";
-      toast("Đang lắng nghe offline...");
-    } catch (err) {
-      toast("Mô hình đang khởi động, hãy thử bấm lại sau 2 giây");
-    }
-  } else {
-    await v.stopListening();
-    isListening = false;
-    if (wv) wv.classList.add("off");
-    if (micBtn) micBtn.textContent = "🎤";
-  }
+ initVosk();
 }
 
 function quick(){
+ const v = window.Capacitor?.Plugins?.VoskVoice;
+ const hint = v ? "Bấm 🎤 để nói offline (Vosk AI tiếng Việt)." : (SR ? "Bấm 🎤 để nói." : "Mẹo: bấm micro trên bàn phím để đọc, rồi bấm Phân tích.");
+ open(`<h1>🎤 Nhập nhanh</h1><div class="mut">Nói hoặc gõ, ví dụ “ăn bún bò 35k”, “gửi xe hai chục”, “mua áo 5 xị”. Cũng dán được nội dung thông báo ngân hàng.</div>
+ <div class="wave off" id="wv">${"<i></i>".repeat(14)}</div>
+ <div style="display:flex;gap:8px"><input id="qi" placeholder="ăn phở 50 nghìn" enterkeyhint="done"><button class="btn" id="mic" style="width:56px">🎤</button></div>
+ <div class="mut" style="margin:6px 0">${hint}</div>
+ <button class="btn" style="width:100%" onclick="analyze()">Phân tích</button><div id="qr"></div><button class="btn g" style="width:100%;margin-top:10px" onclick="closeSheet()">Đóng</button>`);
+ $("#qi").onkeydown = e => { if (e.key === "Enter") analyze(); };
+ $("#mic").onclick = async () => {
   const v = window.Capacitor?.Plugins?.VoskVoice;
-  const hint = v ? "Bấm 🎤 để nói offline (Vosk AI tiếng Việt)." : (SR ? "Bấm 🎤 để nói." : "Mẹo: bấm micro trên bàn phím để đọc, rồi bấm Phân tích.");
-  open(`<h1>🎤 Nhập nhanh</h1><div class="mut">Nói hoặc gõ, ví dụ “ăn bún bò 35k”, “gửi xe hai chục”, “mua áo 5 xị”. Cũng dán được nội dung thông báo ngân hàng.</div>
-  <div class="wave off" id="wv">${"<i></i>".repeat(14)}</div>
-  <div style="display:flex;gap:8px"><input id="qi" placeholder="ăn phở 50 nghìn" enterkeyhint="done"><button class="btn" id="mic" style="width:56px">🎤</button></div>
-  <div class="mut" style="margin:6px 0">${hint}</div>
-  <button class="btn" style="width:100%" onclick="analyze()">Phân tích</button><div id="qr"></div><button class="btn g" style="width:100%;margin-top:10px" onclick="closeSheet()">Đóng</button>`);
-  $("#qi").onkeydown = e => { if (e.key === "Enter") analyze(); };
-  $("#mic").onclick = async () => {
-    const v = window.Capacitor?.Plugins?.VoskVoice;
-    if (v) {
-      await toggleOfflineMic();
-      return;
-    }
-    if (!SR) {
-      toast("Máy chưa hỗ trợ nhận giọng nói trong app. Dùng micro bàn phím nhé");
-      $("#qi").focus();
-      return;
-    }
-    const r = new SR();
-    r.lang = "vi-VN";
-    const wv = $("#wv");
-    wv.classList.remove("off");
-    r.onresult = e => {
-      $("#qi").value = e.results[0][0].transcript;
-      analyze("Voice");
-    };
-    r.onerror = () => toast("Không nghe rõ, bạn thử lại nhé");
-    r.onend = () => wv.classList.add("off");
+  const wv = $("#wv"), micBtn = $("#mic");
+  if (v) {
+   if (!isListening) {
     try {
-      r.start();
-    } catch (e) {
-      wv.classList.add("off");
+      const perm = await v.requestPermissions();
+      if (perm.audio !== "granted") { toast("Cần cấp quyền micro để nói"); return; }
+     await v.startListening();
+     isListening = true;
+     wv.classList.remove("off");
+     micBtn.textContent = "⏹️";
+     toast("Đang lắng nghe offline...");
+    } catch (err) {
+     toast("Lỗi bật mic: " + (err.message || err));
     }
+   } else {
+    await v.stopListening();
+    isListening = false;
+    wv.classList.add("off");
+    micBtn.textContent = "🎤";
+   }
+   return;
+  }
+  if (!SR) {
+   toast("Máy chưa hỗ trợ nhận giọng nói trong app. Dùng micro bàn phím nhé");
+   $("#qi").focus();
+   return;
+  }
+  const r = new SR();
+  r.lang = "vi-VN";
+  wv.classList.remove("off");
+  r.onresult = e => {
+   $("#qi").value = e.results[0][0].transcript;
+   analyze("Voice");
   };
+  r.onerror = () => toast("Không nghe rõ, bạn thử lại nhé");
+  r.onend = () => wv.classList.add("off");
+  try {
+   r.start();
+  } catch (e) {
+   wv.classList.add("off");
+  }
+ };
 }
 function analyze(src){const t=$("#qi").value.trim();if(!t)return;const p=parseAmt(t);
  if(!p.a){$("#qr").innerHTML=`<div class="res">😕 Chưa thấy số tiền. Thử nói rõ hơn, ví dụ “cà phê 15k”.</div>`;return}
@@ -276,14 +256,27 @@ function ocr(){
  <input type="file" id="fi" accept="image/*" capture="environment" hidden><button class="btn" style="width:100%;margin-top:12px" onclick="$('#fi').click()">📷 Mở camera</button>
  <div id="or"></div><button class="btn g" style="width:100%;margin-top:10px" onclick="closeSheet()">Đóng</button>`);
  $("#fi").onchange=e=>scan(e.target.files[0])}
+const okDate=iso=>{if(!iso)return"";const t=ds(new Date()),lim=ds(new Date(Date.now()-45*864e5));return iso<=t&&iso>=lim?iso:""};
+const cap=s=>s.toLowerCase().replace(/(^|\s)\S/g,c=>c.toUpperCase());
+/* Quét hóa đơn: ML Kit (trên máy) -> receipt-engine.js (tổng tiền, ngày, người bán, danh mục). Dự phòng: Tesseract (cần mạng) */
 async function scan(f){if(!f)return;const cam=$("#cam"),o=$("#or");cam.classList.add("scanning");$("#ct").textContent="";o.innerHTML="";
- const img=new Image();img.src=URL.createObjectURL(f);let warn="",tot=0;
+ const img=new Image();img.src=URL.createObjectURL(f);let warn="",r=null,tot=0;
  try{await img.decode();$("#pv").src=img.src;$("#pv").hidden=false}catch(e){cam.classList.remove("scanning");o.innerHTML='<div class="res">Không đọc được ảnh, hãy chụp lại.</div>';return}
  try{if(sharp(img)<40)warn='<div class="mut" style="color:var(--warn);margin-top:8px">⚠️ Ảnh có vẻ bị mờ. Nếu kết quả sai, hãy chụp lại.</div>'}catch(e){}
- try{const T=await loadT(),r=await T.recognize(cv(img,1600),"eng");tot=receiptTotal(r.data.text)}catch(e){}
+ const RS=window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.ReceiptScanner;window.__ocr=null;
+ if(RS&&window.ReceiptEngine){try{await ReceiptEngine.ready;const b=cv(img,1600).toDataURL("image/jpeg",.85).split(",")[1],d=await RS.recognize({image:b});window.__ocr=d;r=ReceiptEngine.extract(d.lines,d.width,d.height)}catch(e){console.warn("ML Kit lỗi",e)}}
+ if(!r||!r.total){try{const T=await loadT(),x=await T.recognize(cv(img,1600),"eng");tot=receiptTotal(x.data.text)}catch(e){}
+  if(tot)r=Object.assign(r||{},{total:tot,candidates:[tot],conf:.4})}
  cam.classList.remove("scanning");
- o.innerHTML=warn+(tot?"":'<div class="res">Chưa đọc được tổng tiền tự động (cần mạng ở lần quét đầu). Bạn nhập tổng tiền bên dưới nhé.</div>')+'<div id="or2"></div>';
- showRes({a:tot||"",c:"shop",n:"Hóa đơn",s:"OCR"},"#or2",false)}
+ const ok=!!(r&&r.total),d0=okDate(r&&r.date);
+ o.innerHTML=warn+(ok?"":'<div class="res">Chưa đọc được tổng tiền tự động. Bạn nhập tổng tiền bên dưới nhé.</div>')+'<div id="or2"></div>';
+ showRes({a:ok?r.total:"",c:(r&&r.category)||"shop",n:r&&r.seller?cap(r.seller):"Hóa đơn",s:"OCR",d:d0},"#or2",false);
+ let extra="";
+ if(ok&&r.candidates&&r.candidates.length>1&&r.conf<.75)extra+='<div class="mut" style="margin-top:8px">Số tiền nào đúng?</div><div class="chips">'+r.candidates.map(a=>`<button class="chip" onclick="$('#ra').value=${a}">${fmt(a)}</button>`).join("")+'</div>';
+ if(ok&&r.conf<.5)extra+='<div class="mut" style="color:var(--warn)">Độ tin cậy thấp, hãy kiểm tra kỹ số tiền.</div>';
+ if(r&&r.date)extra+='<div class="mut">Ngày trên hóa đơn: '+r.date.split("-").reverse().join("/")+(d0?"":" (quá cũ, sẽ ghi theo hôm nay)")+'</div>';
+ if(extra)$("#or2 .res").insertAdjacentHTML("afterbegin",extra);
+ if(window.__ocr)$("#or2").insertAdjacentHTML("beforeend",'<button class="chip" onclick="try{navigator.clipboard.writeText(JSON.stringify(window.__ocr));toast(\'Đã sao chép JSON OCR\')}catch(e){}">📋 Sao chép JSON OCR (để cải thiện mô hình)</button>')}
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;render()});
 $("#sheet").onclick=e=>{if(e.target.id==="sheet"&&!lock)closeSheet()};
 render();
