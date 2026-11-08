@@ -90,7 +90,7 @@ public class VoskPlugin extends Plugin implements RecognitionListener {
     // Callback trả về câu hoàn chỉnh sau khi ngắt giọng
     @Override
     public void onResult(String hypothesis) {
-        sendResultToWeb(hypothesis, false);
+        sendResultToWeb(hypothesis, true);
     }
 
     // Callback khi dừng hẳn thu âm
