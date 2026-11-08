@@ -1,6 +1,7 @@
 package com.tnn.finbud;
 
 import android.Manifest;
+import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -8,6 +9,7 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.vosk.Model;
@@ -21,7 +23,7 @@ import java.io.IOException;
 @CapacitorPlugin(
     name = "VoskVoice",
     permissions = {
-        @Permission(strings = {Manifest.permission.RECORD_AUDIO}, alias = "audio")
+        @Permission(strings = {Manifest.permission.RECORD_AUDIO}, name = "audio")
     }
 )
 public class VoskPlugin extends Plugin implements RecognitionListener {
@@ -37,7 +39,7 @@ public class VoskPlugin extends Plugin implements RecognitionListener {
             return;
         }
 
-        // Giải nén model từ assets vào bộ nhớ máy ở lần đầu mở app
+        // Giải nén model từ assets (thư mục assets/model-vn, có file uuid) vào bộ nhớ máy ở lần đầu mở app
         StorageService.unpack(getContext(), "model-vn", "model",
             (loadedModel) -> {
                 this.model = loadedModel;
@@ -52,6 +54,10 @@ public class VoskPlugin extends Plugin implements RecognitionListener {
         );
     }
 
+    /**
+     * JS: VoskVoice.startListening({ grammar: ["một","hai",...,"[unk]"] })
+     * grammar là tuỳ chọn: giới hạn từ vựng để nhận chính xác hơn với câu ngắn (từ ngoài danh sách bị bỏ qua / thành [unk]).
+     */
     @PluginMethod
     public void startListening(PluginCall call) {
         if (!isModelLoaded) {
@@ -65,7 +71,14 @@ public class VoskPlugin extends Plugin implements RecognitionListener {
         }
 
         try {
-            Recognizer rec = new Recognizer(model, 16000.0f);
+            JSArray grammar = call.getArray("grammar");
+            Recognizer rec;
+            if (grammar != null && grammar.length() > 0) {
+                rec = new Recognizer(model, 16000.0f, grammar.toString());
+            } else {
+                rec = new Recognizer(model, 16000.0f);
+            }
+            rec.setMaxAlternatives(3);   // trả tối đa 3 phương án nghe để JS chọn phương án có số tiền hợp lệ
             speechService = new SpeechService(rec, 16000.0f);
             speechService.startListening(this);
             call.resolve();
@@ -83,17 +96,29 @@ public class VoskPlugin extends Plugin implements RecognitionListener {
         call.resolve();
     }
 
-    // Callback trả kết quả từng từ khi người dùng đang nói
+    // Kết quả tạm thời khi đang nói: gửi lên để người dùng thấy máy đang nghe gì
     @Override
-    public void onPartialResult(String hypothesis) {}
+    public void onPartialResult(String hypothesis) {
+        try {
+            String partial = new JSONObject(hypothesis).optString("partial", "").trim();
+            if (!partial.isEmpty()) {
+                JSObject data = new JSObject();
+                data.put("text", partial);
+                data.put("isFinal", false);
+                notifyListeners("onVoiceResult", data);
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
 
-    // Callback trả về câu hoàn chỉnh sau khi ngắt giọng
+    // Một câu hoàn chỉnh sau khi ngắt giọng -> coi là kết quả cuối
     @Override
     public void onResult(String hypothesis) {
         sendResultToWeb(hypothesis, true);
     }
 
-    // Callback khi dừng hẳn thu âm
+    // Khi dừng hẳn thu âm (thường rỗng vì onResult đã gửi rồi)
     @Override
     public void onFinalResult(String hypothesis) {
         sendResultToWeb(hypothesis, true);
@@ -113,12 +138,28 @@ public class VoskPlugin extends Plugin implements RecognitionListener {
         try {
             JSONObject obj = new JSONObject(hypothesis);
             String text = obj.optString("text", "").trim();
-            if (!text.isEmpty()) {
-                JSObject data = new JSObject();
-                data.put("text", text);
-                data.put("isFinal", isFinal);
-                notifyListeners("onVoiceResult", data);
+            JSArray alternatives = new JSArray();
+            // Khi bật setMaxAlternatives, Vosk trả {"alternatives":[{"text":"...","confidence":...}, ...]}
+            JSONArray arr = obj.optJSONArray("alternatives");
+            if (arr != null) {
+                for (int i = 0; i < arr.length(); i++) {
+                    String t = arr.getJSONObject(i).optString("text", "").trim();
+                    if (!t.isEmpty()) {
+                        alternatives.put(t);
+                        if (text.isEmpty()) {
+                            text = t;
+                        }
+                    }
+                }
             }
+            if (text.isEmpty()) {
+                return;
+            }
+            JSObject data = new JSObject();
+            data.put("text", text);
+            data.put("alternatives", alternatives);
+            data.put("isFinal", isFinal);
+            notifyListeners("onVoiceResult", data);
         } catch (JSONException e) {
             e.printStackTrace();
         }
