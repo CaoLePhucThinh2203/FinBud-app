@@ -23,7 +23,7 @@ import java.io.IOException;
 @CapacitorPlugin(
     name = "VoskVoice",
     permissions = {
-        @Permission(strings = {Manifest.permission.RECORD_AUDIO}, name = "audio")
+        @Permission(strings = {Manifest.permission.RECORD_AUDIO}, alias = "audio")
     }
 )
 public class VoskPlugin extends Plugin implements RecognitionListener {
