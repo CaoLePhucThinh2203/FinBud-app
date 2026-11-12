@@ -1,0 +1,194 @@
+text,label
+ăn bún bò 35k,food
+phở 50 nghìn,food
+cà phê sữa đá 20k,food
+trà sữa trân châu 45k,food
+nước mía 10k,food
+bánh mì ốp la 25k,food
+cơm gà xối mỡ 40k,food
+ăn trưa với bạn 70k,food
+đi chợ mua rau với thịt 120k,food
+mua trứng 30k,food
+xôi sáng 15k,food
+gà rán kfc 89k,food
+highlands 55k,food
+grabfood bún chả 65k,food
+chè thái 20k,food
+bánh tráng trộn 15k,food
+bò bía 10k,food
+cơm tấm sườn bì chả 45k,food
+hủ tiếu nam vang 40k,food
+ăn lẩu nấm cuối tuần 300k,food
+sữa đậu nành 8k,food
+bánh bột lọc 20k,food
+mì xào bò 45k,food
+an sang banh mi 20k,food
+uong tra dao 30k,food
+mua nuoc suoi 5k,food
+ăn vặt 25k,food
+bánh crepe 35k,food
+đổ xăng 50k,move
+xăng 80k,move
+gửi xe 5k,move
+gui xe thang 100k,move
+grab về nhà 32k,move
+grab car đi sân bay 250k,move
+vé xe buýt 7k,move
+be bike 18k,move
+taxi mai linh 120k,move
+vé xe khách về quê 250k,move
+vé máy bay hà nội 1tr2,move
+thay nhớt xe 90k,move
+vá lốp 30k,move
+sửa phanh xe máy 150k,move
+rửa xe 40k,move
+phí cầu đường 35k,move
+xanh sm 45k,move
+vé tàu đà nẵng 600k,move
+thue xe may 2 ngay 300k,move
+bơm bánh xe 5k,move
+thay bugi 60k,move
+gửi ô tô 30k,move
+bút chì 5k,study
+mua bút bi 10k,study
+thước kẻ 8k,study
+compa 25k,study
+vở 50k,study
+mua 10 cuốn vở 80k,study
+giấy a4 60k,study
+photo tài liệu 15k,study
+in đề cương 20k,study
+máy tính casio 500k,study
+học phí kỳ này 8 triệu,study
+đóng tiền học thêm 1tr,study
+khóa ielts 4 triệu,study
+sách giáo trình kinh tế vi mô 90k,study
+fahasa 120k,study
+lệ phí thi toeic 1tr6,study
+bút dạ quang 15k,study
+tẩy 5k,study
+sổ tay 30k,study
+gia sư toán 500k,study
+but chi 2b 6k,study
+mua giay kiem tra 10k,study
+in bài tập lớn 40k,study
+bìa còng 25k,study
+bảng phấn 50k,study
+áo thun 150k,shop
+quần jean 350k,shop
+giày sneaker 800k,shop
+mua dép 60k,shop
+ốp lưng điện thoại 50k,shop
+tai nghe bluetooth 400k,shop
+sạc dự phòng 300k,shop
+sữa rửa mặt 120k,shop
+kem chống nắng 250k,shop
+dầu gội 90k,shop
+giấy vệ sinh 70k,shop
+nước giặt 150k,shop
+shopee 230k,shop
+đơn lazada 180k,shop
+bách hóa xanh 210k,shop
+circle k 45k,shop
+uniqlo áo khoác 600k,shop
+son môi 200k,shop
+balo mới 450k,shop
+mua chảo chống dính 180k,shop
+khăn tắm 60k,shop
+móc phơi đồ 30k,shop
+mua chuột không dây 150k,shop
+bàn chải đánh răng 25k,shop
+thuốc cảm 30k,health
+thuốc 50k,health
+mua thuốc ho 40k,health
+thuốc hạ sốt 25k,health
+panadol 20k,health
+vitamin c 80k,health
+khẩu trang 30k,health
+băng cá nhân 15k,health
+khám bệnh 200k,health
+khám răng 300k,health
+lấy cao răng 150k,health
+nhổ răng khôn 1tr5,health
+bệnh viện 500k,health
+xét nghiệm máu 250k,health
+tiêm vắc xin cúm 300k,health
+nhà thuốc long châu 120k,health
+pharmacity 65k,health
+nước muối sinh lý 10k,health
+thuốc đau bụng 20k,health
+thuoc dau dau 15k,health
+kham mat 100k,health
+dầu gió xanh 25k,health
+siêu âm 150k,health
+thuốc nhỏ mắt 40k,health
+miếng dán giảm đau 35k,health
+men tiêu hóa 60k,health
+tiền nhà tháng 11 3 triệu,other
+tiền trọ 2tr5,other
+tiền điện 300k,other
+tiền nước 80k,other
+đóng tiền điện nước 400k,other
+internet 200k,other
+cước wifi tháng này 180k,other
+nạp điện thoại 50k,other
+nạp thẻ viettel 100k,other
+gói data 4g 120k,other
+tien phong thang 12 3tr,other
+đổi bình gas 450k,other
+phí quản lý chung cư 500k,other
+thanh toán evn 320k,other
+nạp tiền mobifone 20k,other
+tiền rác 30k,other
+icloud 19k,other
+dong tien mang 165k,other
+thẻ cào vinaphone 50k,other
+xem phim 90k,fun
+vé cgv 120k,fun
+karaoke với nhóm 400k,fun
+nạp game 100k,fun
+netflix 260k,fun
+spotify 59k,fun
+du lịch đà lạt 2 triệu,fun
+khách sạn vũng tàu 800k,fun
+vé vinwonders 600k,fun
+thuê sân bóng 300k,fun
+đánh cầu lông 50k,fun
+phí gym tháng 400k,fun
+bơi 30k,fun
+vé concert 1tr5,fun
+bi a 60k,fun
+truyện tranh 25k,fun
+mua skin liên quân 200k,fun
+đi chơi công viên 50k,fun
+homestay 600k,fun
+steam game 300k,fun
+bowling 120k,fun
+xem phim lotte 85k,fun
+tap yoga 300k,fun
+cắm trại cuối tuần 250k,fun
+vé bảo tàng 40k,fun
+mừng cưới 500k,other
+quà sinh nhật bạn 200k,other
+từ thiện 100k,other
+gửi tiền về cho mẹ 2 triệu,other
+trả nợ bạn 150k,other
+cắt tóc 60k,other
+gội đầu 40k,other
+giặt ủi 50k,other
+lì xì 200k,other
+quỹ lớp 100k,other
+đóng đoàn phí 30k,other
+phí chuyển khoản 3k,other
+nộp phạt 200k,other
+công chứng giấy tờ 50k,other
+thức ăn cho mèo 120k,other
+cát vệ sinh mèo 90k,other
+mua hoa 8/3 150k,other
+vé số 10k,other
+ủng hộ lũ lụt 200k,other
+chia tiền với bạn 50k,other
+thay màn hình điện thoại 1tr,other
+đi chùa 50k,other
+tiền tip shipper 10k,other
+phúng điếu 300k,other

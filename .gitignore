@@ -4,3 +4,5 @@ node_modules/
 local.properties
 *.apk
 *.aab
+tools/category/data/
+__pycache__/
