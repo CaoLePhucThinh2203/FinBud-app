@@ -54,7 +54,8 @@ import java.util.concurrent.Executors;
  * màn hình chính, không phải khởi động WebView của app nên mở gần như tức thì.
  *
  * - Tách số tiền + phân loại: QuickParser (giống hệt bản JS, dùng chung receipt_model.json / receipt_lexicon.json).
- * - Giọng nói: bộ nhận giọng có sẵn của Android (vi-VN), nhanh hơn nạp Vosk.
+ * - Giọng nói: bộ nhận giọng có sẵn của Android (vi-VN), nhanh hơn nạp Vosk. Nếu trong app chọn "Chỉ trên máy"
+ *   thì yêu cầu nhận ngoại tuyến (âm thanh không rời khỏi máy); chưa có gói tiếng Việt thì nhắc gõ tay.
  * - Lưu: giao dịch vào hàng chờ (FinBudWidget.addPending); widget cập nhật ngay;
  *   lần mở app sau, index.html lấy hàng chờ vào Lịch sử.
  */
@@ -72,7 +73,7 @@ public class QuickAddActivity extends Activity {
     private LinearLayout result, chipRow, sheet;
     private final Map<String, TextView> chips = new HashMap<>();
     private String cat = "other";
-    private boolean listening, usedVoice;
+    private boolean listening, usedVoice, deviceOnly;   // deviceOnly: cài đặt "Chỉ trên máy" trong app
     private SpeechRecognizer recognizer;
     private final Runnable analyzeLater = this::analyze;
 
@@ -87,6 +88,7 @@ public class QuickAddActivity extends Activity {
             return;
         }
         palette(data.optString("theme", "auto"));
+        deviceOnly = "device".equals(data.optString("voice", "best"));
         setContentView(buildUi());
         loadClassifier();
         input.requestFocus();
@@ -445,13 +447,16 @@ public class QuickAddActivity extends Activity {
         i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
         i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "vi-VN");
         i.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
+        if (deviceOnly) i.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
         return i;
     }
 
     private void startMic() {
         InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         if (imm != null) imm.hideSoftInputFromWindow(input.getWindowToken(), 0);
-        if (!SpeechRecognizer.isRecognitionAvailable(this)) {       // không có dịch vụ nhận giọng: thử hộp thoại hệ thống
+        boolean onDevice = deviceOnly && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+            && SpeechRecognizer.isOnDeviceRecognitionAvailable(this);
+        if (!onDevice && !SpeechRecognizer.isRecognitionAvailable(this)) {   // không có dịch vụ nhận giọng: thử hộp thoại hệ thống
             try {
                 startActivityForResult(speechIntent(), REQ_SPEECH);
             } catch (Exception e) {
@@ -460,7 +465,8 @@ public class QuickAddActivity extends Activity {
             return;
         }
         if (recognizer == null) {
-            recognizer = SpeechRecognizer.createSpeechRecognizer(this);
+            recognizer = onDevice ? SpeechRecognizer.createOnDeviceSpeechRecognizer(this)
+                : SpeechRecognizer.createSpeechRecognizer(this);
             recognizer.setRecognitionListener(new RecognitionListener() {
                 public void onReadyForSpeech(Bundle b) {}
                 public void onBeginningOfSpeech() {}
@@ -484,7 +490,12 @@ public class QuickAddActivity extends Activity {
                 }
                 public void onError(int e) {
                     stopMic();
-                    showStatus("Không nghe rõ, bạn thử lại nhé");
+                    boolean noNet = e == SpeechRecognizer.ERROR_NETWORK || e == SpeechRecognizer.ERROR_NETWORK_TIMEOUT
+                        || e == SpeechRecognizer.ERROR_SERVER || e == 11;
+                    if (e == 12 || e == 13 || (deviceOnly && noNet))
+                        showStatus("Máy chưa có gói tiếng Việt ngoại tuyến. Gõ tay, hoặc mở app để dùng nhận giọng trên máy");
+                    else if (noNet) showStatus("Không có mạng. Gõ tay, hoặc mở app để dùng nhận giọng trên máy");
+                    else showStatus("Không nghe rõ, bạn thử lại nhé");
                 }
             });
         }
