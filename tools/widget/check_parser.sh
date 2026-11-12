@@ -9,7 +9,7 @@ mkdir -p "$OUT"
 # Câu thử: số tiền nhiều kiểu + toàn bộ bộ test phân loại
 { cat "$ROOT/tools/widget/phrases.txt"; tail -n +2 "$ROOT/tools/category/test_set.csv" | sed 's/,[a-z]*\r\{0,1\}$//'; } > "$OUT/phrases.txt"
 
-javac -encoding UTF-8 -d "$OUT" "$ROOT/android/app/src/main/java/com/tnn/finbud/QuickParser.java" "$ROOT/tools/widget/ParserCheck.java"
+javac -encoding UTF-8 -d "$OUT" "$ROOT/android/app/src/main/java/com/tnn/finbud/QuickParser.java" "$ROOT/android/app/src/main/java/com/tnn/finbud/VoiceNumbers.java" "$ROOT/tools/widget/ParserCheck.java"
 java -Dfile.encoding=UTF-8 -cp "$OUT" ParserCheck "$ROOT" "$OUT/phrases.txt" > "$OUT/java.tsv"
 node "$ROOT/tools/widget/parser_js.js" "$ROOT" "$OUT/phrases.txt" > "$OUT/js.tsv"
 

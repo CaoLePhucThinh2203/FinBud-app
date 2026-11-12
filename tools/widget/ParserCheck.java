@@ -46,7 +46,8 @@ public class ParserCheck {
             if (line.isEmpty()) continue;
             QuickParser.Amount p = QuickParser.parseAmt(line);
             out.append(line).append('\t').append(p.a).append('\t').append(QuickParser.noteOf(p)).append('\t')
-                .append(c.categorize(line)).append('\t').append(QuickParser.classifyRx(line)).append('\n');
+                .append(c.categorize(line)).append('\t').append(QuickParser.classifyRx(line)).append('\t')
+                .append(com.tnn.finbud.VoiceNumbers.normalize(line, null)).append('\n');
         }
         System.out.write(out.toString().getBytes(StandardCharsets.UTF_8));
         System.out.flush();

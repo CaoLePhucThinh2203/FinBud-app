@@ -18,8 +18,17 @@ const src = [
 ].join("\n");
 const { parseAmt, classifyRx } = new Function(src.replace(/^const num=/, "var num=") + "\nreturn{parseAmt,classifyRx}")();
 
+// Đọc số bằng chữ cho kết quả giọng nói (voice-parse.js), định dạng tiền giống fmt() trong app
+const VoiceParse = require(path.join(root, "www", "voice-parse.js"));
+const fmt = n => Math.round(n).toLocaleString("vi-VN") + "đ";
+const normalizeVoice = t0 => {
+  const t = VoiceParse.pickVoiceText({ text: t0, alternatives: [] }), r = VoiceParse.parseAmt(t);
+  if (!(r.a > 0)) return t;
+  return ((r.n === "chi tiêu" ? "" : r.n) + " " + fmt(r.a)).trim();
+};
+
 const out = lines.map(t => {
   const p = parseAmt(t), n = (p.n || "Chi tiêu").replace(/^./, x => x.toUpperCase());
-  return [t, p.a, n, E._t.categorize(t), classifyRx(t)].join("\t");
+  return [t, p.a, n, E._t.categorize(t), classifyRx(t), normalizeVoice(t)].join("\t");
 });
 process.stdout.write(out.join("\n") + "\n");
