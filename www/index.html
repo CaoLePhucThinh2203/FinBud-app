@@ -209,7 +209,7 @@ function delMoney(id){if(confirm("Xóa khoản tiền thêm này?")){S.inc=S.inc
 let theme;try{theme=localStorage.getItem(TK)}catch(e){}
 const getTheme=()=>theme||"auto";
 function applyTheme(){const t=getTheme(),r=document.documentElement;if(t==="auto")r.removeAttribute("data-theme");else r.dataset.theme=t}
-function setTheme(t){theme=t;try{localStorage.setItem(TK,t)}catch(e){}applyTheme();render()}
+function setTheme(t){theme=t;try{localStorage.setItem(TK,t)}catch(e){}applyTheme();render();syncWidget()}
 /* --- Vosk Offline Voice Recognition & Web Speech Fallback (Bước 5) --- */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -312,14 +312,20 @@ $("#sheet").onclick=e=>{if(e.target.id==="sheet"&&!lock)closeSheet()};
 function syncWidget(){const W=window.Capacitor?.Plugins?.FinBudWidget;if(!W)return;
  const ym=ds(new Date()).slice(0,7),daily={},extra={};
  if(S.set){S.tx.forEach(t=>{if(t.d.startsWith(ym))daily[t.d]=(daily[t.d]||0)+t.a});S.inc.forEach(x=>{const k=x.d.slice(0,7);extra[k]=(extra[k]||0)+x.a})}
- W.update({data:JSON.stringify(S.set?{ready:true,budget:S.set.budget,fixed:S.set.fixed,daily,extra}:{ready:false})}).catch(()=>{})}
+ W.update({data:JSON.stringify(S.set?{ready:true,budget:S.set.budget,fixed:S.set.fixed,daily,extra,theme:getTheme()}:{ready:false})}).catch(()=>{})}
+/* Giao dịch nhập từ bảng nhập nhanh của widget (QuickAddActivity) nằm trong hàng chờ phía Android: lấy vào Lịch sử */
+async function pullPending(){const W=window.Capacitor?.Plugins?.FinBudWidget;if(!W||!S.set)return;
+ try{const r=await W.takePending(),it=(r&&r.items)||[];let n=0;
+  for(const t of it){if(!t||!(+t.a>0)||S.tx.some(x=>x.id===t.id))continue;
+   S.tx.push({id:t.id,a:+t.a,c:CATS[t.c]?t.c:"other",n:String(t.n||"Chi tiêu"),s:t.s||"Nhập nhanh",d:t.d||ds(new Date())});n++}
+  if(n){S.tx.sort((a,b)=>b.id-a.id);save();render();toast("Đã thêm "+n+" giao dịch nhập từ widget")}}catch(e){}}
 /* Bấm widget: "quick" mở Nói / gõ, "ocr" mở Quét hóa đơn, "home" chỉ mở trang chủ */
 function widgetAction(a){if(!S.set)return;closeSheet();S.tab="home";render();if(a==="quick")quick();else if(a==="ocr")ocr()}
 window.Capacitor?.Plugins?.FinBudWidget?.addListener("widgetAction",e=>widgetAction(e.action));
-document.addEventListener("visibilitychange",()=>{if(!document.hidden){syncWidget();if(S.set)render()}});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden){if(S.set)render();pullPending().then(syncWidget)}});
 applyTheme();
 render();
-syncWidget();
+pullPending().then(syncWidget);
 </script>
 </body>
 </html>
