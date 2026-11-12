@@ -48,7 +48,8 @@ public class FinBudWidget extends AppWidgetProvider {
     static RemoteViews build(Context ctx) {
         RemoteViews v = new RemoteViews(ctx.getPackageName(), R.layout.widget_finbud);
         v.setOnClickPendingIntent(R.id.widget_card, open(ctx, "home", 0));
-        v.setOnClickPendingIntent(R.id.widget_btn_quick, quickAdd(ctx));
+        v.setOnClickPendingIntent(R.id.widget_btn_voice, quickAdd(ctx, true));
+        v.setOnClickPendingIntent(R.id.widget_btn_type, quickAdd(ctx, false));
         v.setOnClickPendingIntent(R.id.widget_btn_ocr, open(ctx, "ocr", 2));
 
         Limit l = null;
@@ -167,11 +168,13 @@ public class FinBudWidget extends AppWidgetProvider {
         return nf.format(Math.round(n)).replace(',', '.').replace(' ', '.') + "đ";
     }
 
-    /** Nút "Nói / gõ": mở bảng nhập nhanh ở nửa dưới màn hình, không mở app. */
-    private static PendingIntent quickAdd(Context ctx) {
+    /** Nút "Nói" (listen = true: nghe ngay) và "Gõ": mở pop-up nhập nhanh ở phần dưới màn hình, không mở app. */
+    private static PendingIntent quickAdd(Context ctx, boolean listen) {
         Intent i = new Intent(ctx, QuickAddActivity.class);
+        i.setAction("com.tnn.finbud.QUICK_" + (listen ? "VOICE" : "TYPE"));   // khác action để 2 nút không dùng chung PendingIntent
+        i.putExtra(QuickAddActivity.EXTRA_LISTEN, listen);
         i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        return PendingIntent.getActivity(ctx, 1, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        return PendingIntent.getActivity(ctx, listen ? 1 : 3, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
     /** Mở app; action "quick"/"ocr" được WidgetPlugin chuyển cho JS để mở đúng bảng. */

@@ -7,6 +7,7 @@
     <string name="widget_name">FinBud – Hạn mức hôm nay</string>
     <string name="widget_desc">Xem số tiền hôm nay có thể chi, ghi chi tiêu nhanh ngay trên màn hình chính</string>
     <string name="widget_label">Hôm nay bạn có thể chi</string>
-    <string name="widget_quick">Nói / gõ</string>
+    <string name="widget_voice">Nói</string>
+    <string name="widget_type">Gõ</string>
     <string name="widget_ocr">Quét hóa đơn</string>
 </resources>

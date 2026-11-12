@@ -13,9 +13,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.speech.RecognitionListener;
-import android.speech.RecognizerIntent;
-import android.speech.SpeechRecognizer;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
@@ -54,14 +51,15 @@ import java.util.concurrent.Executors;
  * màn hình chính, không phải khởi động WebView của app nên mở gần như tức thì.
  *
  * - Tách số tiền + phân loại: QuickParser (giống hệt bản JS, dùng chung receipt_model.json / receipt_lexicon.json).
- * - Giọng nói: bộ nhận giọng có sẵn của Android (vi-VN), nhanh hơn nạp Vosk. Nếu trong app chọn "Chỉ trên máy"
- *   thì yêu cầu nhận ngoại tuyến (âm thanh không rời khỏi máy); chưa có gói tiếng Việt thì nhắc gõ tay.
+ * - Giọng nói: VoiceEngine, cùng hệ thống với nút Nói trong app (Android / trên máy / Vosk dự phòng,
+ *   theo cài đặt "Nhận giọng nói" của app). Mở từ nút Nói của widget thì nghe ngay.
  * - Lưu: giao dịch vào hàng chờ (FinBudWidget.addPending); widget cập nhật ngay;
  *   lần mở app sau, index.html lấy hàng chờ vào Lịch sử.
  */
 public class QuickAddActivity extends Activity {
 
-    private static final int REQ_MIC = 7, REQ_SPEECH = 8;
+    private static final int REQ_MIC = 7;
+    static final String EXTRA_LISTEN = "listen";             // mở từ nút Nói của widget: nghe ngay
     private static volatile QuickParser.Classifier classifier;   // nạp một lần, dùng lại cho các lần mở sau
 
     // Bảng màu giống app (sáng / tối)
@@ -73,13 +71,15 @@ public class QuickAddActivity extends Activity {
     private LinearLayout result, chipRow, sheet;
     private final Map<String, TextView> chips = new HashMap<>();
     private String cat = "other";
-    private boolean listening, usedVoice, deviceOnly;   // deviceOnly: cài đặt "Chỉ trên máy" trong app
-    private SpeechRecognizer recognizer;
+    private boolean listening, deviceOnly;              // deviceOnly: cài đặt "Chỉ trên máy" trong app
+    private String voiceSource;                          // null = gõ tay
+    private VoiceEngine voice;
     private final Runnable analyzeLater = this::analyze;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        SpeechHelper.installCrashLog(this, "widget");
         JSONObject data = FinBudWidget.readData(this);
         if (data == null || !data.optBoolean("ready")) {          // chưa thiết lập ngân sách -> mở app
             Toast.makeText(this, "Mở FinBud để thiết lập ngân sách trước", Toast.LENGTH_SHORT).show();
@@ -90,12 +90,18 @@ public class QuickAddActivity extends Activity {
         palette(data.optString("theme", "auto"));
         deviceOnly = "device".equals(data.optString("voice", "best"));
         setContentView(buildUi());
+        voice = new VoiceEngine(this, voiceCallback());
+        VoiceEngine.prepare(this, deviceOnly);
         loadClassifier();
-        input.requestFocus();
-        ui.postDelayed(() -> {
-            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-            if (imm != null && !listening) imm.showSoftInput(input, InputMethodManager.SHOW_IMPLICIT);
-        }, 150);
+        if (getIntent().getBooleanExtra(EXTRA_LISTEN, false)) {
+            ui.postDelayed(this::toggleMic, 250);               // nút Nói trên widget: bắt đầu nghe luôn
+        } else {
+            input.requestFocus();
+            ui.postDelayed(() -> {
+                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                if (imm != null && !listening) imm.showSoftInput(input, InputMethodManager.SHOW_IMPLICIT);
+            }, 150);
+        }
     }
 
     // ---------------- Giao diện ----------------
@@ -402,7 +408,7 @@ public class QuickAddActivity extends Activity {
             tx.put("a", a);
             tx.put("c", cat);
             tx.put("n", note.isEmpty() ? "Chi tiêu" : note);
-            tx.put("s", usedVoice ? "Voice" : "Nhập nhanh");
+            tx.put("s", voiceSource != null ? voiceSource : "Nhập nhanh");
             tx.put("d", String.format(Locale.US, "%04d-%02d-%02d", c.get(Calendar.YEAR), c.get(Calendar.MONTH) + 1, c.get(Calendar.DAY_OF_MONTH)));
             FinBudWidget.addPending(this, tx);
         } catch (Exception e) {
@@ -415,17 +421,18 @@ public class QuickAddActivity extends Activity {
     }
 
     private void close() {
-        stopMic();
+        if (voice != null) voice.release();
         finish();
         overridePendingTransition(0, 0);
     }
 
-    // ---------------- Giọng nói ----------------
+    // ---------------- Giọng nói: dùng chung VoiceEngine với app ----------------
 
     private void toggleMic() {
         if (listening) {
-            if (recognizer != null) recognizer.stopListening();
-            stopMic();
+            voice.stop();                                       // vẫn nhận nốt phần đã nói
+            setMicUi(false);
+            showStatus("Đang xử lý…");
             return;
         }
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
@@ -442,99 +449,74 @@ public class QuickAddActivity extends Activity {
         else if (code == REQ_MIC) showStatus("Cần cấp quyền micro để nói");
     }
 
-    private Intent speechIntent() {
-        Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "vi-VN");
-        i.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
-        if (deviceOnly) i.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true);
-        return i;
-    }
-
     private void startMic() {
         InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
         if (imm != null) imm.hideSoftInputFromWindow(input.getWindowToken(), 0);
-        boolean onDevice = deviceOnly && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-            && SpeechRecognizer.isOnDeviceRecognitionAvailable(this);
-        if (!onDevice && !SpeechRecognizer.isRecognitionAvailable(this)) {   // không có dịch vụ nhận giọng: thử hộp thoại hệ thống
-            try {
-                startActivityForResult(speechIntent(), REQ_SPEECH);
-            } catch (Exception e) {
-                showStatus("Máy chưa hỗ trợ nhận giọng nói. Dùng micro trên bàn phím nhé");
+        try {
+            setMicUi(true);
+            showStatus("Đang nghe…");
+            voice.start(deviceOnly);
+        } catch (Exception e) {                                  // không để pop-up văng ra ngoài
+            setMicUi(false);
+            SpeechHelper.recordError(this, "pop-up: bật nhận giọng", SpeechHelper.stack(e));
+            showStatus("Không bật được nhận giọng nói. Gõ tay nhé");
+        }
+    }
+
+    private VoiceEngine.Callback voiceCallback() {
+        return new VoiceEngine.Callback() {
+            public void onState(String state) {
+                if ("loading".equals(state)) showStatus("Đang nạp nhận giọng trên máy…");
+                else if ("listening".equals(state)) showStatus("Đang nghe…");
+                else {                                           // "idle": kết quả / lỗi (nếu có) báo ngay sau đó
+                    setMicUi(false);
+                    showStatus("");
+                }
             }
-            return;
-        }
-        if (recognizer == null) {
-            recognizer = onDevice ? SpeechRecognizer.createOnDeviceSpeechRecognizer(this)
-                : SpeechRecognizer.createSpeechRecognizer(this);
-            recognizer.setRecognitionListener(new RecognitionListener() {
-                public void onReadyForSpeech(Bundle b) {}
-                public void onBeginningOfSpeech() {}
-                public void onRmsChanged(float v) {}
-                public void onBufferReceived(byte[] b) {}
-                public void onEndOfSpeech() {}
-                public void onEvent(int t, Bundle b) {}
-                public void onPartialResults(Bundle b) {
-                    String s = first(b);
-                    if (s != null) input.setText(s);
-                }
-                public void onResults(Bundle b) {
-                    String s = first(b);
-                    stopMic();
-                    if (s != null) {
-                        usedVoice = true;
-                        input.setText(s);
-                        input.setSelection(s.length());
-                        analyze();
-                    }
-                }
-                public void onError(int e) {
-                    stopMic();
-                    boolean noNet = e == SpeechRecognizer.ERROR_NETWORK || e == SpeechRecognizer.ERROR_NETWORK_TIMEOUT
-                        || e == SpeechRecognizer.ERROR_SERVER || e == 11;
-                    if (e == 12 || e == 13 || (deviceOnly && noNet))
-                        showStatus("Máy chưa có gói tiếng Việt ngoại tuyến. Gõ tay, hoặc mở app để dùng nhận giọng trên máy");
-                    else if (noNet) showStatus("Không có mạng. Gõ tay, hoặc mở app để dùng nhận giọng trên máy");
-                    else showStatus("Không nghe rõ, bạn thử lại nhé");
-                }
-            });
-        }
-        listening = true;
-        micBtn.setText("Dừng");
-        micBtn.setBackground(round(cBad, 10, 0));
-        showStatus("Đang nghe…");
-        recognizer.startListening(speechIntent());
+
+            public void onPartial(String text) {
+                input.setText(text);
+                input.setSelection(text.length());
+            }
+
+            public void onResult(String text, String engine) {
+                setMicUi(false);
+                showStatus("");
+                voiceSource = "vosk".equals(engine) ? "Voice Offline" : "Voice";
+                input.setText(text);
+                input.setSelection(text.length());
+                analyze();
+            }
+
+            public void onInfo(String message) {
+                Toast.makeText(QuickAddActivity.this, message, Toast.LENGTH_SHORT).show();
+            }
+
+            public void onError(String message, int code) {
+                setMicUi(false);
+                showStatus(message != null ? message + ". Bấm Nói để thử lại hoặc gõ tay" : "");
+            }
+        };
     }
 
-    private static String first(Bundle b) {
-        ArrayList<String> r = b.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-        return r != null && !r.isEmpty() ? r.get(0) : null;
-    }
-
-    private void stopMic() {
-        if (!listening) return;
-        listening = false;
-        micBtn.setText("Nói");
-        micBtn.setBackground(round(cPri, 10, 0));
-        showStatus("");
+    private void setMicUi(boolean on) {
+        listening = on;
+        micBtn.setText(on ? "Dừng" : "Nói");
+        micBtn.setBackground(round(on ? cBad : cPri, 10, 0));
     }
 
     @Override
-    protected void onActivityResult(int code, int res, Intent data) {
-        super.onActivityResult(code, res, data);
-        if (code != REQ_SPEECH || res != RESULT_OK || data == null) return;
-        ArrayList<String> r = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
-        if (r != null && !r.isEmpty()) {
-            usedVoice = true;
-            input.setText(r.get(0));
-            analyze();
-        }
+    protected void onStop() {
+        super.onStop();
+        if (voice != null) voice.release();                     // rời pop-up (về màn hình chính...) thì nhả micro
+        if (!isChangingConfigurations() && !isFinishing()) finish();
     }
 
     @Override
     protected void onDestroy() {
         ui.removeCallbacksAndMessages(null);
-        if (recognizer != null) recognizer.destroy();
+        if (voice != null) voice.release();
         super.onDestroy();
     }
 }
+
