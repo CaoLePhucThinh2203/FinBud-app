@@ -6,3 +6,4 @@ local.properties
 *.aab
 tools/category/data/
 __pycache__/
+tools/widget/build/
