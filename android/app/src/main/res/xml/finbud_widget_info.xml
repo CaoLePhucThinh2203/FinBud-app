@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cập nhật mỗi 30 phút (mức tối thiểu Android cho phép) để sang ngày mới hạn mức vẫn đúng
+     dù chưa mở app. Mỗi lần lưu giao dịch trong app, widget được cập nhật ngay. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/widget_desc"
+    android:initialLayout="@layout/widget_finbud"
+    android:previewLayout="@layout/widget_finbud"
+    android:minWidth="250dp"
+    android:minHeight="180dp"
+    android:minResizeWidth="220dp"
+    android:minResizeHeight="160dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="3"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="1800000"
+    android:widgetCategory="home_screen" />

@@ -34,6 +34,19 @@
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
 
+        <!-- Widget màn hình chính: hạn mức hôm nay + nút Nói/gõ, Quét hóa đơn -->
+        <receiver
+            android:name=".FinBudWidget"
+            android:exported="true"
+            android:label="@string/widget_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/finbud_widget_info" />
+        </receiver>
+
     </application>
 
 

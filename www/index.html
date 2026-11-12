@@ -86,7 +86,7 @@ const K="finbud.v1",TK="finbud.theme",CATS={food:["#D85A30","Ăn uống"],move:[
 let S={set:null,tx:[],inc:[],tab:"home"},dr=null,lock=false,isListening=false;
 try{const j=JSON.parse(localStorage.getItem(K)||"null");if(j)S={...S,set:j.set,tx:j.tx||[],inc:j.inc||[]}}catch(e){}
 S.tx.forEach(t=>{if(!CATS[t.c])t.c="other"});  // danh mục đã bỏ (vd. Hóa đơn) -> Khác
-const save=()=>{try{localStorage.setItem(K,JSON.stringify({set:S.set,tx:S.tx,inc:S.inc}))}catch(e){}};
+const save=()=>{try{localStorage.setItem(K,JSON.stringify({set:S.set,tx:S.tx,inc:S.inc}))}catch(e){}syncWidget()};
 const $=s=>document.querySelector(s),pad=n=>String(n).padStart(2,"0"),sum=a=>a.reduce((x,t)=>x+t.a,0);
 const ds=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
 const fmt=n=>Math.round(n).toLocaleString("vi-VN")+"đ";
@@ -307,8 +307,19 @@ async function scan(f){if(!f)return;const cam=$("#cam"),o=$("#or");cam.classList
  if(window.__ocr)$("#or2").insertAdjacentHTML("beforeend",'<button class="chip" onclick="try{navigator.clipboard.writeText(JSON.stringify(window.__ocr));toast(\'Đã sao chép JSON OCR\')}catch(e){}">Sao chép JSON OCR</button>')}
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;render()});
 $("#sheet").onclick=e=>{if(e.target.id==="sheet"&&!lock)closeSheet()};
+/* Widget màn hình chính (Android, FinBudWidget.java): gửi dữ liệu thô, phía native tự tính lại hạn mức
+   mỗi 30 phút nên sang ngày mới vẫn đúng. Công thức bên đó phải giống calc() ở trên. */
+function syncWidget(){const W=window.Capacitor?.Plugins?.FinBudWidget;if(!W)return;
+ const ym=ds(new Date()).slice(0,7),daily={},extra={};
+ if(S.set){S.tx.forEach(t=>{if(t.d.startsWith(ym))daily[t.d]=(daily[t.d]||0)+t.a});S.inc.forEach(x=>{const k=x.d.slice(0,7);extra[k]=(extra[k]||0)+x.a})}
+ W.update({data:JSON.stringify(S.set?{ready:true,budget:S.set.budget,fixed:S.set.fixed,daily,extra}:{ready:false})}).catch(()=>{})}
+/* Bấm widget: "quick" mở Nói / gõ, "ocr" mở Quét hóa đơn, "home" chỉ mở trang chủ */
+function widgetAction(a){if(!S.set)return;closeSheet();S.tab="home";render();if(a==="quick")quick();else if(a==="ocr")ocr()}
+window.Capacitor?.Plugins?.FinBudWidget?.addListener("widgetAction",e=>widgetAction(e.action));
+document.addEventListener("visibilitychange",()=>{if(!document.hidden){syncWidget();if(S.set)render()}});
 applyTheme();
 render();
+syncWidget();
 </script>
 </body>
 </html>
