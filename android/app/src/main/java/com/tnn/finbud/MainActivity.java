@@ -8,6 +8,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(VoskPlugin.class);            // Nhận giọng nói offline (Vosk)
         registerPlugin(ReceiptScannerPlugin.class);  // OCR hóa đơn offline (ML Kit)
+        registerPlugin(WidgetPlugin.class);          // Widget màn hình chính
         super.onCreate(savedInstanceState);
     }
 }
