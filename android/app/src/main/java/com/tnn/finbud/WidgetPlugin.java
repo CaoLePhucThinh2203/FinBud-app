@@ -12,6 +12,7 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 /**
  * Cầu nối giữa app (JS) và widget màn hình chính (FinBudWidget).
  * JS gọi: Capacitor.Plugins.FinBudWidget.update({ data: "<JSON>" })  sau mỗi lần lưu dữ liệu.
+ * JS gọi: takePending()  khi mở app, để đưa giao dịch nhập từ widget vào Lịch sử.
  * JS nghe: addListener("widgetAction", e => ...)  với e.action = "home" | "quick" | "ocr"
  *          khi người dùng bấm vào widget (kể cả lúc app đang tắt hẳn).
  */
@@ -29,6 +30,14 @@ public class WidgetPlugin extends Plugin {
             .edit().putString(FinBudWidget.KEY_DATA, data).apply();
         FinBudWidget.updateAll(getContext());
         call.resolve();
+    }
+
+    /** Lấy các giao dịch đã nhập từ bảng nhập nhanh (widget) và xoá khỏi hàng chờ. Trả về { items: [...] }. */
+    @PluginMethod
+    public void takePending(PluginCall call) {
+        JSObject o = new JSObject();
+        o.put("items", FinBudWidget.takePending(getContext()));
+        call.resolve(o);
     }
 
     /** Bridge gọi hàm này cả khi app mở lần đầu từ widget lẫn khi app đang chạy nền. */

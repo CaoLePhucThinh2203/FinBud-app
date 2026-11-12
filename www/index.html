@@ -81,6 +81,7 @@ label.s{display:flex;justify-content:space-between;align-items:center;gap:10px;p
  <div class="toast" id="toast"></div>
 </div>
 <script src="receipt-engine.js"></script>
+<script src="voice-parse.js"></script>
 <script>
 const K="finbud.v1",TK="finbud.theme",CATS={food:["#D85A30","Ăn uống"],move:["#378ADD","Di chuyển"],study:["#7F77DD","Học tập"],shop:["#D4537E","Mua sắm"],health:["#E24B4A","Sức khỏe"],fun:["#639922","Giải trí"],other:["#888780","Khác"]};
 let S={set:null,tx:[],inc:[],tab:"home"},dr=null,lock=false,isListening=false;
@@ -150,8 +151,10 @@ function render(){
  }else if(S.tab==="hist"){
   sc.innerHTML=`<h1>Lịch sử giao dịch</h1><div class="mut date" style="margin-bottom:12px">Tháng này: ${c.m.length} giao dịch · ${fmt(c.spent)} · chạm vào giao dịch để xóa</div><div class="card">${S.tx.length?S.tx.map(t=>row(t,1)).join(""):'<div class="mut">Chưa có giao dịch.</div>'}</div>`;
  }else{
-  const th=getTheme();
+  const th=getTheme(),vm=getVoiceMode();
   sc.innerHTML=`<h1>Cài đặt</h1><h2>Giao diện</h2><div class="card"><div class="seg">${[["auto","Theo máy"],["light","Sáng"],["dark","Tối"]].map(([k,l])=>`<button class="${k===th?"on":""}" onclick="setTheme('${k}')">${l}</button>`).join("")}</div></div>
+  <h2>Nhận giọng nói</h2><div class="card"><div class="seg">${[["best","Chính xác nhất"],["device","Chỉ trên máy"]].map(([k,l])=>`<button class="${k===vm?"on":""}" onclick="setVoiceMode('${k}')">${l}</button>`).join("")}</div>
+  <div class="hint">${vm==="best"?"Dùng nhận giọng của Android (thường là Google). Cần mạng, âm thanh được gửi lên máy chủ của dịch vụ để nhận dạng. Mất mạng thì tự chuyển sang nhận giọng trên máy.":"Âm thanh không rời khỏi máy: dùng gói tiếng Việt ngoại tuyến của Android nếu đã tải, không thì dùng Vosk (kém chính xác hơn)."}</div></div>
   <h2>Ngân sách tháng</h2><div class="card">
   <label class="s">Tên<input placeholder="Nhập tên của bạn" value="${esc(S.set.name||"")}" onchange="S.set.name=this.value.trim();save();toast('Đã lưu')"></label>
   <label class="s">Ngân sách<input type="number" inputmode="numeric" value="${S.set.budget}" onchange="S.set.budget=+this.value||0;save();toast('Đã lưu')"></label>
@@ -176,7 +179,7 @@ function del(id){if(confirm("Xóa giao dịch này?")){S.tx=S.tx.filter(t=>t.id!
 function open(h,lk){lock=!!lk;$("#panel").innerHTML=h;$("#sheet").classList.add("show")}
 /* Khuôn chung cho mọi bảng: vạch kéo, tiêu đề, nút Đóng ở góc phải */
 function sheet(t,b,lk){open(`<div class="grab"></div><div class="shh"><h1>${t}</h1>${lk?"":'<button class="x" onclick="closeSheet()">Đóng</button>'}</div>`+b,lk)}
-function closeSheet(){$("#sheet").classList.remove("show");dr=null;if(isListening&&window.Capacitor?.Plugins?.VoskVoice){window.Capacitor.Plugins.VoskVoice.stopListening();isListening=false;}}
+function closeSheet(){$("#sheet").classList.remove("show");dr=null;if(isListening)stopVoice()}
 function setup(){sheet("Chào mừng đến FinBud",`<div class="mut" style="margin:-8px 0 8px">Thiết lập ngân sách tháng này để biết mỗi ngày được tiêu bao nhiêu.</div>
  <label class="s">Tên của bạn<input id="sn" placeholder="Nhập tên của bạn"></label>
  <label class="s">Ngân sách tháng (đ)<input id="sb" type="number" inputmode="numeric" value="5000000"></label>
@@ -209,67 +212,80 @@ function delMoney(id){if(confirm("Xóa khoản tiền thêm này?")){S.inc=S.inc
 let theme;try{theme=localStorage.getItem(TK)}catch(e){}
 const getTheme=()=>theme||"auto";
 function applyTheme(){const t=getTheme(),r=document.documentElement;if(t==="auto")r.removeAttribute("data-theme");else r.dataset.theme=t}
-function setTheme(t){theme=t;try{localStorage.setItem(TK,t)}catch(e){}applyTheme();render()}
-/* --- Vosk Offline Voice Recognition & Web Speech Fallback (Bước 5) --- */
-const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+function setTheme(t){theme=t;try{localStorage.setItem(TK,t)}catch(e){}applyTheme();render();syncWidget()}
+/* --- Giọng nói ---
+   1) Nhận giọng của Android (AndroidSpeechPlugin, thường là Google): chính xác nhất.
+      Chế độ "Chỉ trên máy" thì yêu cầu chạy ngoại tuyến, âm thanh không rời khỏi máy.
+   2) Vosk (VoskPlugin, model đóng gói trong APK): dự phòng khi mất mạng / chưa có gói tiếng Việt ngoại tuyến /
+      máy không có dịch vụ nhận giọng. Model chỉ nạp khi cần (hoặc nạp sẵn ở nền nếu chắc chắn sẽ dùng).
+   3) Web Speech API: khi chạy thử trên trình duyệt.
+   Kết quả giọng nói đi qua VoiceParse (voice-parse.js) để đổi số đọc bằng chữ thành chữ số trước khi phân tích. */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition, VK="finbud.voice";
+let voiceMode;try{voiceMode=localStorage.getItem(VK)}catch(e){}
+const getVoiceMode=()=>voiceMode==="device"?"device":"best";
+function setVoiceMode(m){voiceMode=m;try{localStorage.setItem(VK,m)}catch(e){}render();syncWidget();if(m==="device")ensureVosk(true).catch(()=>{})}
+const AS=()=>window.Capacitor?.Plugins?.AndroidSpeech,VV=()=>window.Capacitor?.Plugins?.VoskVoice;
+let voiceEngine=null,voskReady=null;
 
-async function initVosk() {
- const v = window.Capacitor?.Plugins?.VoskVoice;
- if (!v) return;
- console.log("Đang nạp mô hình Vosk Offline...");
- try {
-  await v.initModel();
-  console.log("Vosk model đã sẵn sàng!");
- } catch (e) {
-  console.warn("Lỗi nạp Vosk model:", e);
-  toast("Lỗi nạp Vosk: " + (e.message || e)); 
- }
- v.addListener("onVoiceResult", data => {
-  const inp = $("#qi");
-  if (inp && data.text) inp.value = data.text;
-  if (data.isFinal) {
-   analyze("Voice Offline");
-   v.stopListening();
-   isListening = false;
-   setMic(false);
-  }
- });
-  v.addListener("onError", e => {
-  toast("Lỗi mic: " + e.error);
-  isListening = false;
-  setMic(false);
- });
+/* Nạp model Vosk một lần; quiet = nạp ngầm ở nền, không báo gì */
+function ensureVosk(quiet){const v=VV();if(!v)return Promise.reject(new Error("Không có Vosk"));
+ if(!voskReady){if(!quiet)toast("Đang nạp nhận giọng trên máy…");
+  voskReady=v.initModel().catch(e=>{voskReady=null;throw e})}
+ return voskReady}
+
+/* Chọn phương án nghe tốt nhất và đổi "ba mươi lăm nghìn" -> "35.000đ" để parseAmt và người dùng cùng thấy chữ số */
+function normalizeVoice(text,alts){const V=window.VoiceParse;if(!V)return text;
+ const t=V.pickVoiceText({text,alternatives:alts||[]}),r=V.parseAmt(t);
+ if(!(r.a>0))return t;const n=r.n==="chi tiêu"?"":r.n;return(n+" "+fmt(r.a)).trim()}
+function voiceDone(text,alts,src){voiceEngine=null;isListening=false;setMic(false);const q=$("#qi");if(!q||!text)return;
+ q.value=normalizeVoice(text,alts);analyze(src)}
+function voiceFail(msg){voiceEngine=null;isListening=false;setMic(false);if(msg)toast(msg)}
+
+function initVoice(){
+ const a=AS(),v=VV();
+ a?.addListener("partial",e=>{const q=$("#qi");if(q&&voiceEngine==="android")q.value=e.text});
+ a?.addListener("result",e=>{if(voiceEngine==="android")voiceDone(e.text,e.alternatives,"Voice")});
+ a?.addListener("error",e=>{if(voiceEngine!=="android")return;
+  if(e.fallback&&v){toast(getVoiceMode()==="device"?"Chưa có gói tiếng Việt ngoại tuyến, chuyển sang nhận giọng Vosk":"Không có mạng, chuyển sang nhận giọng trên máy (Vosk)");startVosk()}
+  else voiceFail(e.message)});
+ v?.addListener("onVoiceResult",d=>{if(voiceEngine!=="vosk")return;const q=$("#qi");
+  if(!d.isFinal){if(q&&d.text)q.value=d.text;return}
+  v.stopListening();voiceDone(d.text,d.alternatives,"Voice Offline")});
+ v?.addListener("onError",e=>{if(voiceEngine==="vosk")voiceFail("Lỗi mic: "+e.error)});
+ // Nạp sẵn Vosk ở nền khi gần như chắc chắn sẽ dùng: chế độ "Chỉ trên máy" hoặc máy không có dịch vụ nhận giọng
+ if(v)setTimeout(async()=>{let ok=false;try{ok=a&&(await a.isAvailable()).available}catch(e){}
+  if(getVoiceMode()==="device"||!ok)ensureVosk(true).catch(()=>{})},3000);
 }
-if (document.readyState === "loading") {
- window.addEventListener("DOMContentLoaded", initVosk);
-} else {
- initVosk();
-}
+if(document.readyState==="loading")window.addEventListener("DOMContentLoaded",initVoice);else initVoice();
+
+async function startVosk(){const v=VV();
+ try{voiceEngine="vosk";isListening=true;setMic(true);await ensureVosk();
+  if(voiceEngine!=="vosk")return;await v.startListening()}
+ catch(e){voiceFail("Không bật được nhận giọng trên máy: "+(e.message||e))}}
+async function startVoice(){
+ const a=AS(),v=VV(),P=a||v;
+ if(P){try{const p=await P.requestPermissions();if(p.audio!=="granted"){toast("Cần cấp quyền micro để nói");return}}catch(e){}}
+ if(a){let st={};try{st=await a.isAvailable()}catch(e){}
+  if(st.available){voiceEngine="android";isListening=true;setMic(true);
+   try{await a.start({offline:getVoiceMode()==="device"})}catch(e){if(v)startVosk();else voiceFail("Không bật được micro")}
+   return}}
+ if(v){startVosk();return}
+ if(!SR){toast("Máy chưa hỗ trợ nhận giọng nói trong app. Dùng micro bàn phím nhé");$("#qi").focus();return}
+ const r=new SR();r.lang="vi-VN";r.maxAlternatives=3;voiceEngine="web";isListening=true;setMic(true);
+ r.onresult=e=>{const res=e.results[0],alts=[...res].map(x=>x.transcript);voiceDone(alts[0],alts,"Voice")};
+ r.onerror=()=>voiceFail("Không nghe rõ, bạn thử lại nhé");
+ r.onend=()=>{if(voiceEngine==="web")voiceFail()};
+ try{r.start()}catch(e){voiceFail()}}
+function stopVoice(){const e=voiceEngine;isListening=false;setMic(false);
+ if(e==="android")AS()?.stop().catch(()=>{});            // giữ voiceEngine để nhận nốt phần đã nói
+ else{voiceEngine=null;if(e==="vosk")VV()?.stopListening().catch(()=>{})}}
 
 function setMic(on){const f=$("#qf"),b=$("#mic"),i=$("#qi");if(f)f.classList.toggle("on",on);if(b)b.textContent=on?"Dừng":"Nói";if(i)i.placeholder=on?"Đang nghe…":"ăn bún bò 35k"}
 function quick(){
  sheet("Nhập nhanh",`<div class="fld" id="qf"><input id="qi" placeholder="ăn bún bò 35k" enterkeyhint="done" autocomplete="off"><button class="mic" id="mic">Nói</button></div><div id="qr"></div>`);
  $("#qi").onkeydown=e=>{if(e.key==="Enter")analyze()};
  $("#qi").onchange=()=>analyze();
- $("#mic").onclick=async()=>{
-  const v=window.Capacitor?.Plugins?.VoskVoice;
-  if(v){
-   if(!isListening){
-    try{
-     const perm=await v.requestPermissions();
-     if(perm.audio!=="granted"){toast("Cần cấp quyền micro để nói");return}
-     await v.startListening();isListening=true;setMic(true);
-    }catch(err){toast("Lỗi bật mic: "+(err.message||err))}
-   }else{await v.stopListening();isListening=false;setMic(false)}
-   return;
-  }
-  if(!SR){toast("Máy chưa hỗ trợ nhận giọng nói trong app. Dùng micro bàn phím nhé");$("#qi").focus();return}
-  const r=new SR();r.lang="vi-VN";setMic(true);
-  r.onresult=e=>{$("#qi").value=e.results[0][0].transcript;analyze("Voice")};
-  r.onerror=()=>toast("Không nghe rõ, bạn thử lại nhé");
-  r.onend=()=>setMic(false);
-  try{r.start()}catch(e){setMic(false)}
- };
+ $("#mic").onclick=()=>{if(isListening)stopVoice();else startVoice()};
 }
 function analyze(src){const t=$("#qi").value.trim();if(!t)return;const p=parseAmt(t);
  if(!p.a){dr=null;$("#qr").innerHTML=`<div class="res mut">Chưa thấy số tiền. Thử nói rõ hơn, ví dụ “cà phê 15k”.</div>`;return}
@@ -312,14 +328,20 @@ $("#sheet").onclick=e=>{if(e.target.id==="sheet"&&!lock)closeSheet()};
 function syncWidget(){const W=window.Capacitor?.Plugins?.FinBudWidget;if(!W)return;
  const ym=ds(new Date()).slice(0,7),daily={},extra={};
  if(S.set){S.tx.forEach(t=>{if(t.d.startsWith(ym))daily[t.d]=(daily[t.d]||0)+t.a});S.inc.forEach(x=>{const k=x.d.slice(0,7);extra[k]=(extra[k]||0)+x.a})}
- W.update({data:JSON.stringify(S.set?{ready:true,budget:S.set.budget,fixed:S.set.fixed,daily,extra}:{ready:false})}).catch(()=>{})}
+ W.update({data:JSON.stringify(S.set?{ready:true,budget:S.set.budget,fixed:S.set.fixed,daily,extra,theme:getTheme(),voice:getVoiceMode()}:{ready:false})}).catch(()=>{})}
+/* Giao dịch nhập từ bảng nhập nhanh của widget (QuickAddActivity) nằm trong hàng chờ phía Android: lấy vào Lịch sử */
+async function pullPending(){const W=window.Capacitor?.Plugins?.FinBudWidget;if(!W||!S.set)return;
+ try{const r=await W.takePending(),it=(r&&r.items)||[];let n=0;
+  for(const t of it){if(!t||!(+t.a>0)||S.tx.some(x=>x.id===t.id))continue;
+   S.tx.push({id:t.id,a:+t.a,c:CATS[t.c]?t.c:"other",n:String(t.n||"Chi tiêu"),s:t.s||"Nhập nhanh",d:t.d||ds(new Date())});n++}
+  if(n){S.tx.sort((a,b)=>b.id-a.id);save();render();toast("Đã thêm "+n+" giao dịch nhập từ widget")}}catch(e){}}
 /* Bấm widget: "quick" mở Nói / gõ, "ocr" mở Quét hóa đơn, "home" chỉ mở trang chủ */
 function widgetAction(a){if(!S.set)return;closeSheet();S.tab="home";render();if(a==="quick")quick();else if(a==="ocr")ocr()}
 window.Capacitor?.Plugins?.FinBudWidget?.addListener("widgetAction",e=>widgetAction(e.action));
-document.addEventListener("visibilitychange",()=>{if(!document.hidden){syncWidget();if(S.set)render()}});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden){if(S.set)render();pullPending().then(syncWidget)}});
 applyTheme();
 render();
-syncWidget();
+pullPending().then(syncWidget);
 </script>
 </body>
 </html>

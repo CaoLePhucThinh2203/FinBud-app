@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.widget.RemoteViews;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.text.NumberFormat;
@@ -26,6 +27,7 @@ public class FinBudWidget extends AppWidgetProvider {
 
     static final String PREFS = "finbud_widget";
     static final String KEY_DATA = "data";
+    static final String KEY_PENDING = "pending";            // giao dịch nhập từ bảng nhập nhanh, chờ app lấy vào Lịch sử
     static final String EXTRA_ACTION = "finbud_widget_action";
 
     @Override
@@ -46,13 +48,13 @@ public class FinBudWidget extends AppWidgetProvider {
     static RemoteViews build(Context ctx) {
         RemoteViews v = new RemoteViews(ctx.getPackageName(), R.layout.widget_finbud);
         v.setOnClickPendingIntent(R.id.widget_card, open(ctx, "home", 0));
-        v.setOnClickPendingIntent(R.id.widget_btn_quick, open(ctx, "quick", 1));
+        v.setOnClickPendingIntent(R.id.widget_btn_quick, quickAdd(ctx));
         v.setOnClickPendingIntent(R.id.widget_btn_ocr, open(ctx, "ocr", 2));
 
-        String json = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_DATA, null);
         Limit l = null;
         try {
-            if (json != null) l = compute(new JSONObject(json), Calendar.getInstance());
+            JSONObject d = readData(ctx);
+            if (d != null) l = compute(withPending(d, readPending(ctx)), Calendar.getInstance());
         } catch (Exception ignored) {
         }
 
@@ -72,6 +74,53 @@ public class FinBudWidget extends AppWidgetProvider {
         v.setTextViewText(R.id.widget_spent, "Đã chi " + fmt(l.tdy) + " / " + fmt(l.limit) + (l.ratio > 1 ? " · Vượt hạn mức" : ""));
         v.setTextViewText(R.id.widget_tomorrow, "Ngày mai dự kiến " + fmt(l.tomorrow));
         return v;
+    }
+
+    // ---------------- Dữ liệu dùng chung với app ----------------
+
+    static JSONObject readData(Context ctx) {
+        try {
+            String s = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_DATA, null);
+            return s == null ? null : new JSONObject(s);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    static synchronized JSONArray readPending(Context ctx) {
+        try {
+            return new JSONArray(ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_PENDING, "[]"));
+        } catch (Exception e) {
+            return new JSONArray();
+        }
+    }
+
+    /** Thêm một giao dịch {id, a, c, n, s, d} vào hàng chờ. */
+    static synchronized void addPending(Context ctx, JSONObject tx) {
+        JSONArray a = readPending(ctx);
+        a.put(tx);
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_PENDING, a.toString()).commit();
+    }
+
+    /** Lấy toàn bộ hàng chờ và xoá đi (app gọi khi mở để đưa vào Lịch sử). */
+    static synchronized JSONArray takePending(Context ctx) {
+        JSONArray a = readPending(ctx);
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(KEY_PENDING).commit();
+        return a;
+    }
+
+    /** Cộng các giao dịch còn trong hàng chờ vào tổng chi theo ngày, để widget đúng ngay cả khi app chưa mở. */
+    static JSONObject withPending(JSONObject d, JSONArray pending) throws Exception {
+        if (pending.length() == 0) return d;
+        JSONObject c = new JSONObject(d.toString());
+        JSONObject daily = c.optJSONObject("daily");
+        if (daily == null) c.put("daily", daily = new JSONObject());
+        for (int i = 0; i < pending.length(); i++) {
+            JSONObject t = pending.getJSONObject(i);
+            String day = t.optString("d");
+            daily.put(day, daily.optDouble(day, 0) + t.optDouble("a", 0));
+        }
+        return c;
     }
 
     /** Kết quả tính hạn mức, cùng ý nghĩa với các trường trong calc() của index.html. */
@@ -116,6 +165,13 @@ public class FinBudWidget extends AppWidgetProvider {
         NumberFormat nf = NumberFormat.getIntegerInstance(new Locale("vi", "VN"));
         nf.setGroupingUsed(true);
         return nf.format(Math.round(n)).replace(',', '.').replace(' ', '.') + "đ";
+    }
+
+    /** Nút "Nói / gõ": mở bảng nhập nhanh ở nửa dưới màn hình, không mở app. */
+    private static PendingIntent quickAdd(Context ctx) {
+        Intent i = new Intent(ctx, QuickAddActivity.class);
+        i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        return PendingIntent.getActivity(ctx, 1, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
     /** Mở app; action "quick"/"ocr" được WidgetPlugin chuyển cho JS để mở đúng bảng. */
