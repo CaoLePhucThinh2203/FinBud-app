@@ -60,6 +60,10 @@ final class VoiceEngine {
     private final Callback cb;
     private SpeechRecognizer recognizer;
     private SpeechService vosk;
+    private Recognizer voskRec;
+    private List<android.content.ComponentName> services;   // các dịch vụ trực tuyến sẽ thử lần lượt (null = mặc định)
+    private int attempt;                                     // đang thử dịch vụ thứ mấy
+    private static int okService = -1;                       // dịch vụ đã chạy được lần trước, lần sau dùng luôn
     private boolean active;        // đang trong một lượt nghe (chưa trả kết quả / lỗi)
     private boolean stopping;      // người dùng bấm Dừng
     private String engine = "";
@@ -80,6 +84,8 @@ final class VoiceEngine {
         active = true;
         stopping = false;
         if (!deviceOnly) {
+            services = SpeechHelper.candidates(ctx);
+            attempt = okService >= 0 && okService < services.size() ? okService : 0;
             if (SpeechHelper.available(ctx)) startAndroid(false);
             else startVosk(null);                             // máy không có dịch vụ nhận giọng nào
         } else if (canUseOnDevice()) {
@@ -101,14 +107,31 @@ final class VoiceEngine {
     /** Huỷ hẳn, không trả kết quả (đóng pop-up, rời màn hình). */
     void release() {
         active = false;
+        MAIN.removeCallbacksAndMessages(this);
         destroyRecognizer();
+        closeVosk();
+    }
+
+    /** Tắt Vosk đúng thứ tự: stop() (chờ luồng ghi âm dừng hẳn) rồi mới shutdown() và giải phóng Recognizer.
+     *  Trước đây finish() gọi shutdown() khi luồng ghi âm còn chạy -> văng app ở tầng native. */
+    private void closeVosk() {
         if (vosk != null) {
             try {
                 vosk.stop();
+            } catch (Exception ignored) {
+            }
+            try {
                 vosk.shutdown();
             } catch (Exception ignored) {
             }
             vosk = null;
+        }
+        if (voskRec != null) {
+            try {
+                voskRec.close();
+            } catch (Exception ignored) {
+            }
+            voskRec = null;
         }
     }
 
@@ -123,13 +146,7 @@ final class VoiceEngine {
         if (!active) return;
         active = false;
         destroyRecognizer();
-        if (vosk != null) {
-            try {
-                vosk.shutdown();
-            } catch (Exception ignored) {
-            }
-            vosk = null;
-        }
+        closeVosk();
         cb.onState("idle");
         if (text != null && !text.trim().isEmpty()) cb.onResult(text.trim(), eng);
         else if (err != null) cb.onError(err, code);
@@ -144,9 +161,12 @@ final class VoiceEngine {
     private void startAndroid(boolean onDevice) {
         engine = onDevice ? "ondevice" : "android";
         try {
-            recognizer = onDevice ? SpeechRecognizer.createOnDeviceSpeechRecognizer(ctx) : SpeechHelper.createOnline(ctx);
+            recognizer = onDevice ? SpeechRecognizer.createOnDeviceSpeechRecognizer(ctx)
+                : SpeechHelper.create(ctx, services.get(attempt));
             recognizer.setRecognitionListener(new RecognitionListener() {
-                public void onReadyForSpeech(Bundle b) {}
+                public void onReadyForSpeech(Bundle b) {
+                    if (!onDevice) okService = attempt;           // dịch vụ này chạy được
+                }
                 public void onBeginningOfSpeech() {}
                 public void onRmsChanged(float v) {}
                 public void onBufferReceived(byte[] b) {}
@@ -186,6 +206,15 @@ final class VoiceEngine {
             return;
         }
         SpeechHelper.recordError(ctx, onDevice ? "nhận giọng trên máy" : "nhận giọng Android", code);
+        // Mã 5 / 11 / 12 / 13: dịch vụ này không dùng được (thường do từ chối app khác hoặc không có tiếng Việt).
+        // Thử dịch vụ kế tiếp (Google khác, rồi dịch vụ mặc định của máy) trước khi chuyển sang Vosk.
+        if (!onDevice && (code == SpeechRecognizer.ERROR_CLIENT || code == 11 || code == 12 || code == 13)
+            && services != null && attempt + 1 < services.size()) {
+            if (okService == attempt) okService = -1;
+            attempt++;
+            MAIN.postAtTime(() -> { if (active) startAndroid(false); }, this, android.os.SystemClock.uptimeMillis() + 200);
+            return;
+        }
         if (onDevice && code != SpeechRecognizer.ERROR_RECOGNIZER_BUSY) viOnDevice = false;   // lần sau đi thẳng Vosk
         if (onDevice || SpeechHelper.shouldFallback(code)) {
             startVosk(onDevice ? "Máy chưa có gói tiếng Việt ngoại tuyến" : SpeechHelper.message(code) + " (mã " + code + ")");
@@ -262,13 +291,14 @@ final class VoiceEngine {
                 return;
             }
             try {
-                Recognizer rec = new Recognizer(voskModel, 16000.0f);
-                rec.setMaxAlternatives(3);
-                vosk = new SpeechService(rec, 16000.0f);
+                voskRec = new Recognizer(voskModel, 16000.0f);
+                voskRec.setMaxAlternatives(3);
+                vosk = new SpeechService(voskRec, 16000.0f);
                 vosk.startListening(voskListener);
                 cb.onState("listening");
             } catch (Exception e) {
                 SpeechHelper.recordError(ctx, "Vosk: mở micro", SpeechHelper.stack(e));
+                closeVosk();
                 finish(null, null, "Không mở được micro, thử lại sau giây lát", -3);
             }
         });

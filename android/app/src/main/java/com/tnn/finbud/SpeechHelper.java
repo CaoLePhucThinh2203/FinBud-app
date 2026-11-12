@@ -59,10 +59,23 @@ final class SpeechHelper {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && SpeechRecognizer.isOnDeviceRecognitionAvailable(ctx);
     }
 
-    /** Tạo bộ nhận giọng trực tuyến (ưu tiên Google). Gọi trên luồng giao diện. */
-    static SpeechRecognizer createOnline(Context ctx) {
-        ComponentName c = pickService(ctx);
-        return c != null ? SpeechRecognizer.createSpeechRecognizer(ctx, c) : SpeechRecognizer.createSpeechRecognizer(ctx);
+    /** Danh sách dịch vụ trực tuyến để thử lần lượt: các dịch vụ Google có trên máy, cuối cùng là dịch vụ mặc định (null). */
+    static List<ComponentName> candidates(Context ctx) {
+        List<ComponentName> out = new java.util.ArrayList<>();
+        List<ResolveInfo> list = ctx.getPackageManager().queryIntentServices(new Intent(RecognitionService.SERVICE_INTERFACE), 0);
+        for (String pkg : PREFERRED) {
+            for (ResolveInfo r : list) {
+                ServiceInfo s = r.serviceInfo;
+                if (s != null && pkg.equals(s.packageName)) out.add(new ComponentName(s.packageName, s.name));
+            }
+        }
+        out.add(null);
+        return out;
+    }
+
+    /** Tạo bộ nhận giọng cho một dịch vụ (null = dịch vụ mặc định của máy). Gọi trên luồng giao diện. */
+    static SpeechRecognizer create(Context ctx, ComponentName service) {
+        return service != null ? SpeechRecognizer.createSpeechRecognizer(ctx, service) : SpeechRecognizer.createSpeechRecognizer(ctx);
     }
 
     /** offline = true chỉ dùng cho bộ nhận on-device; dịch vụ trực tuyến không gửi cờ này (tránh lỗi "mất mạng" giả). */
