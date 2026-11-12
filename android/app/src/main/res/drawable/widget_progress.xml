@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Thanh tiến độ: nền trắng 30%, phần đã chi trắng đặc, bo tròn hai đầu -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@android:id/background">
+        <shape><solid android:color="#4DFFFFFF" /><corners android:radius="6dp" /></shape>
+    </item>
+    <item android:id="@android:id/progress">
+        <scale android:scaleWidth="100%">
+            <shape><solid android:color="#FFFFFFFF" /><corners android:radius="6dp" /></shape>
+        </scale>
+    </item>
+</layer-list>

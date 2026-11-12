@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget màn hình chính: bản sao khối "Hôm nay bạn có thể chi" ở trang chủ app.
+     Chữ mẫu bên dưới chỉ dùng cho ảnh xem trước; số thật do FinBudWidget.java điền. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_card"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_bg_ok"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/widget_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/widget_label"
+        android:textColor="#E6FFFFFF"
+        android:textSize="13sp" />
+
+    <TextView
+        android:id="@+id/widget_amount"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:layout_marginTop="2dp"
+        android:autoSizeMaxTextSize="34sp"
+        android:autoSizeMinTextSize="18sp"
+        android:autoSizeTextType="uniform"
+        android:fontFamily="sans-serif-black"
+        android:gravity="center_vertical"
+        android:maxLines="1"
+        android:text="142.000đ"
+        android:textColor="#FFFFFFFF"
+        android:textSize="30sp" />
+
+    <ProgressBar
+        android:id="@+id/widget_bar"
+        style="@android:style/Widget.ProgressBar.Horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="6dp"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="6dp"
+        android:max="100"
+        android:progress="38"
+        android:progressDrawable="@drawable/widget_progress" />
+
+    <TextView
+        android:id="@+id/widget_spent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:text="Đã chi 88.000đ / 230.000đ"
+        android:textColor="#EBFFFFFF"
+        android:textSize="12sp" />
+
+    <TextView
+        android:id="@+id/widget_tomorrow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:text="Ngày mai dự kiến 190.000đ"
+        android:textColor="#EBFFFFFF"
+        android:textSize="12sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="12dp"
+        android:layout_weight="1"
+        android:minHeight="40dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/widget_btn_quick"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginEnd="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/widget_btn"
+            android:gravity="center"
+            android:text="@string/widget_quick"
+            android:textColor="#FFFFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_btn_ocr"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="4dp"
+            android:layout_weight="1"
+            android:background="@drawable/widget_btn"
+            android:gravity="center"
+            android:text="@string/widget_ocr"
+            android:textColor="#FFFFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+</LinearLayout>
