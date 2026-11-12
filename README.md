@@ -40,18 +40,23 @@ Sản phẩm được nghiên cứu và phát triển theo quy trình Design Thi
 
 ### 3. Nhập nhanh bằng giọng nói tiếng Việt
 * **Một ô nhập duy nhất:** gõ hoặc bấm **Nói** ngay trong ô; nói xong hoặc bấm Enter là app tự phân tích.
+* **Một hệ thống nhận giọng chung** (`VoiceEngine.java`) cho cả 3 nút Nói: nút **Nói** trên widget, nút **Nói** trong
+  pop-up nhập nhanh và nút **Nói** trong app. Cùng chế độ, cùng thứ tự dự phòng, cùng cách đọc số, cùng thông báo lỗi.
 * **Hai chế độ nhận giọng** (Cài đặt → *Nhận giọng nói*):
 
   | Chế độ | Dùng gì | Âm thanh đi đâu |
   |---|---|---|
   | **Chính xác nhất** *(mặc định)* | Nhận giọng có sẵn của Android (thường là Google) | **Gửi lên máy chủ** của dịch vụ để nhận dạng, cần mạng |
-  | **Chỉ trên máy** | Gói tiếng Việt ngoại tuyến của Android nếu đã tải, không thì Vosk | Không rời khỏi máy |
+  | **Chỉ trên máy** | Bộ nhận on-device của Android nếu máy đã có gói tiếng Việt, không thì Vosk | Không rời khỏi máy |
 
-  Ở chế độ *Chính xác nhất*, khi mất mạng hoặc máy không có dịch vụ nhận giọng, app tự chuyển sang Vosk.
-* **Vosk (dự phòng, chạy trên máy):** model tiếng Việt cỡ nhỏ đóng gói trong APK. Model chỉ được nạp khi cần
-  (nạp sẵn ở nền nếu đang ở chế độ *Chỉ trên máy* hoặc máy không có dịch vụ nhận giọng), nên mở app không còn bị chậm.
-  App chọn phương án nghe có số tiền hợp lệ trong 3 phương án Vosk trả về.
-* **Đọc số bằng chữ** (`voice-parse.js`): kết quả giọng nói được đổi sang chữ số trước khi phân tích, ví dụ
+  * *Chính xác nhất*: ưu tiên dịch vụ của Google (dịch vụ mặc định của một số hãng không hỗ trợ tiếng Việt). Mất mạng,
+    dịch vụ lỗi hoặc không hỗ trợ tiếng Việt thì tự chuyển sang Vosk và báo rõ lý do.
+  * *Chỉ trên máy*: trên Android 13+ app kiểm tra trước máy đã có gói tiếng Việt chưa; nếu máy hỗ trợ mà chưa tải thì
+    nhờ máy tải về, trong lúc đó dùng Vosk.
+* **Vosk (dự phòng, chạy trên máy):** model tiếng Việt cỡ nhỏ đóng gói trong APK, nạp một lần và dùng chung cho app
+  và pop-up. Chỉ nạp khi cần (nạp sẵn ở nền nếu đang ở chế độ *Chỉ trên máy* hoặc máy không có dịch vụ nhận giọng).
+  Chọn phương án nghe có số tiền hợp lệ trong 3 phương án Vosk trả về.
+* **Đọc số bằng chữ** (`VoiceNumbers.java`, khớp `voice-parse.js`): kết quả giọng nói được đổi sang chữ số trước khi phân tích, ví dụ
   *"một trăm hai mươi nghìn tiền sách"* → `tiền sách 120.000đ`, *"bốn lăm ca phở"* → `phở 45.000đ`.
 * **Hiểu cách nói của sinh viên:**
   * *"ăn bún bò 35k"* → 35.000đ
@@ -105,7 +110,8 @@ flowchart LR
 
 ### 7. Widget màn hình chính (Android)
 * Thẻ 4×2 giống khối hạn mức ở trang chủ: số tiền hôm nay có thể chi, thanh tiến độ, đã chi, ngày mai dự kiến; đổi màu xanh / vàng / đỏ.
-* **Nói / gõ** mở bảng nhập nhanh native ở phần dưới màn hình, không phải mở app: gõ hoặc nói, tự tách số tiền và danh mục
+* **Nói** mở pop-up nhập nhanh ở phần dưới màn hình và nghe ngay; **Gõ** mở pop-up với bàn phím. Không phải mở app:
+  gõ hoặc nói, tự tách số tiền và danh mục
   (`QuickParser.java`, cho kết quả giống hệt bản JS, kiểm tra bằng `tools/widget/check_parser.sh`), bấm **Lưu** là widget cập nhật ngay.
   Giao dịch được đưa vào Lịch sử ở lần mở app kế tiếp. Bảng theo cùng chế độ nhận giọng và giao diện sáng/tối của app.
 * **Quét hóa đơn** và chạm vào thẻ thì mở app.
@@ -144,13 +150,14 @@ FinBud-app/
 │  ├─ receipt_lexicon.json     # Từ khóa + danh mục
 │  └─ receipt_model.json       # Mô hình trích xuất hóa đơn + phân loại danh mục
 ├─ tools/category/             # Sinh dữ liệu, train, đánh giá bộ phân loại danh mục
-├─ tools/widget/               # Kiểm tra QuickParser (Java) khớp với JS
+├─ tools/widget/               # Kiểm tra QuickParser + VoiceNumbers (Java) khớp với JS
 ├─ android/app/src/main/
 │  ├─ assets/model-vn/         # Model Vosk tiếng Việt (+ file uuid)
 │  └─ java/com/tnn/finbud/
 │     ├─ MainActivity.java     # Đăng ký plugin
-│     ├─ AndroidSpeechPlugin.java   # Nhận giọng của Android (chế độ chính)
-│     ├─ VoskPlugin.java       # Giọng nói trên máy (dự phòng)
+│     ├─ VoiceEngine.java      # Hệ thống nhận giọng chung (Android / trên máy / Vosk) cho app, pop-up, widget
+│     ├─ VoicePlugin.java      # Nút Nói trong app gọi VoiceEngine
+│     ├─ VoiceNumbers.java, SpeechHelper.java   # Đọc số bằng chữ; chọn dịch vụ, mã lỗi, chẩn đoán
 │     ├─ ReceiptScannerPlugin.java  # OCR ML Kit
 │     ├─ FinBudWidget.java, WidgetPlugin.java   # Widget màn hình chính
 │     └─ QuickAddActivity.java, QuickParser.java  # Bảng nhập nhanh từ widget
@@ -196,6 +203,7 @@ Cần chạy qua server để app tải được `receipt_model.json`; mở th�
 | Lỗi nạp model, báo thiếu `uuid` | Cần file văn bản `uuid` (một dòng bất kỳ) trong `assets/model-vn/`; đổi nội dung khi thay model |
 | Không bật được micro | Chưa cấp quyền micro; app xin quyền ở lần bấm **Nói** đầu tiên |
 | Báo "chưa có gói tiếng Việt ngoại tuyến" | Đang ở chế độ *Chỉ trên máy*. Tải gói tiếng Việt trong cài đặt nhận giọng nói của Android (thường ở Google → Giọng nói / Nhận dạng giọng nói ngoại tuyến), hoặc để app dùng Vosk |
+| Nói bị lỗi, không rõ vì sao | Vào Cài đặt → **Chẩn đoán**: xem dịch vụ nhận giọng đang dùng, máy có gói tiếng Việt trên máy chưa, trạng thái Vosk và lỗi gần nhất (kể cả lỗi của pop-up widget). Bấm *Sao chép để gửi hỗ trợ* |
 | Nhận giọng kém, hay nghe sai số | Có thể app đang dùng Vosk (mất mạng hoặc chế độ *Chỉ trên máy* khi chưa có gói ngoại tuyến). Nói chậm, rõ đơn vị tiền ("nghìn", "k") |
 | Không thấy lỗi gì | Mở `chrome://inspect` xem console WebView, hoặc `adb logcat` lọc `Capacitor`, `vosk` |
 
