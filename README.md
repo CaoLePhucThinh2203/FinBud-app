@@ -10,7 +10,7 @@ Sản phẩm được nghiên cứu và phát triển theo quy trình Design Thi
 
 * **Vấn đề thực tế:** 61,5% sinh viên gặp khó khăn vì có quá nhiều giao dịch nhỏ lẻ và 42,3% dễ quên ghi chép. Các ứng dụng ngân hàng hiện tại chỉ hiển thị số dư và lịch sử giao dịch trong quá khứ, không hỗ trợ đưa ra quyết định chi tiêu ngay tại thời điểm mua sắm.
 * **Cách FinBud giải quyết:**
-  * **Zero-effort Input:** Nhập liệu đa phương thức bằng AI chạy trên máy (giọng nói tiếng Việt offline, quét hóa đơn, tự phân loại danh mục).
+  * **Zero-effort Input:** Nhập liệu đa phương thức (giọng nói tiếng Việt, quét hóa đơn chạy trên máy, tự phân loại danh mục), nhập nhanh ngay từ widget màn hình chính.
   * **Daily Safe-to-Spend:** Chuyển dữ liệu tài chính phức tạp thành một con số duy nhất: hạn mức chi tiêu khả dụng trong ngày.
 
 ---
@@ -38,9 +38,21 @@ Sản phẩm được nghiên cứu và phát triển theo quy trình Design Thi
 * Chọn nhanh `+50k / +100k / +200k / +500k`, ghi nguồn tiền (không bắt buộc); nút **Thêm** cho biết hạn mức hôm nay tăng bao nhiêu.
 * Khoản tiền thêm chỉ cộng vào tháng hiện tại. Danh sách các lần đã thêm nằm trong bảng Thêm tiền, chạm để xóa.
 
-### 3. Nhập nhanh bằng giọng nói tiếng Việt (Offline – Vosk)
-* **Chạy hoàn toàn trên máy:** Model Vosk tiếng Việt được đóng gói trong APK, nhận diện bằng CPU điện thoại, không cần mạng.
+### 3. Nhập nhanh bằng giọng nói tiếng Việt
 * **Một ô nhập duy nhất:** gõ hoặc bấm **Nói** ngay trong ô; nói xong hoặc bấm Enter là app tự phân tích.
+* **Hai chế độ nhận giọng** (Cài đặt → *Nhận giọng nói*):
+
+  | Chế độ | Dùng gì | Âm thanh đi đâu |
+  |---|---|---|
+  | **Chính xác nhất** *(mặc định)* | Nhận giọng có sẵn của Android (thường là Google) | **Gửi lên máy chủ** của dịch vụ để nhận dạng, cần mạng |
+  | **Chỉ trên máy** | Gói tiếng Việt ngoại tuyến của Android nếu đã tải, không thì Vosk | Không rời khỏi máy |
+
+  Ở chế độ *Chính xác nhất*, khi mất mạng hoặc máy không có dịch vụ nhận giọng, app tự chuyển sang Vosk.
+* **Vosk (dự phòng, chạy trên máy):** model tiếng Việt cỡ nhỏ đóng gói trong APK. Model chỉ được nạp khi cần
+  (nạp sẵn ở nền nếu đang ở chế độ *Chỉ trên máy* hoặc máy không có dịch vụ nhận giọng), nên mở app không còn bị chậm.
+  App chọn phương án nghe có số tiền hợp lệ trong 3 phương án Vosk trả về.
+* **Đọc số bằng chữ** (`voice-parse.js`): kết quả giọng nói được đổi sang chữ số trước khi phân tích, ví dụ
+  *"một trăm hai mươi nghìn tiền sách"* → `tiền sách 120.000đ`, *"bốn lăm ca phở"* → `phở 45.000đ`.
 * **Hiểu cách nói của sinh viên:**
   * *"ăn bún bò 35k"* → 35.000đ
   * *"gửi xe hai chục"* → 20.000đ
@@ -50,7 +62,7 @@ Sản phẩm được nghiên cứu và phát triển theo quy trình Design Thi
   * Cũng đọc được số dạng `45.000 VND`, `2 triệu rưỡi`, và dán được nội dung thông báo ngân hàng vào ô nhập.
 * **Tự phân loại danh mục** bằng mô hình chạy trên máy (xem [mục 5](#5-phân-loại-danh-mục-chi-tiêu)).
 * **Kiểm tra trước khi lưu:** thẻ kết quả hiện số tiền lớn, danh mục dạng nút chọn và ghi chú sửa được; chỉ lưu khi bấm **Lưu**.
-* **Dự phòng:** nếu máy không chạy được Vosk, app dùng Web Speech API (nếu có), hoặc bạn bấm micro trên bàn phím rồi bấm Enter.
+* **Khi chạy thử trên trình duyệt:** dùng Web Speech API nếu có, hoặc micro trên bàn phím rồi bấm Enter.
 
 ### 4. Quét hóa đơn bán lẻ (OCR chạy trên máy)
 Chụp hóa đơn → app tự điền **tổng tiền, ngày, người bán và danh mục**, bạn kiểm tra rồi lưu.
@@ -91,6 +103,15 @@ flowchart LR
 * Giao diện tối giản, không dùng icon/emoji; danh mục phân biệt bằng chấm màu.
 * Dữ liệu lưu cục bộ trên thiết bị (Local Storage).
 
+### 7. Widget màn hình chính (Android)
+* Thẻ 4×2 giống khối hạn mức ở trang chủ: số tiền hôm nay có thể chi, thanh tiến độ, đã chi, ngày mai dự kiến; đổi màu xanh / vàng / đỏ.
+* **Nói / gõ** mở bảng nhập nhanh native ở phần dưới màn hình, không phải mở app: gõ hoặc nói, tự tách số tiền và danh mục
+  (`QuickParser.java`, cho kết quả giống hệt bản JS, kiểm tra bằng `tools/widget/check_parser.sh`), bấm **Lưu** là widget cập nhật ngay.
+  Giao dịch được đưa vào Lịch sử ở lần mở app kế tiếp. Bảng theo cùng chế độ nhận giọng và giao diện sáng/tối của app.
+* **Quét hóa đơn** và chạm vào thẻ thì mở app.
+* Widget tự tính lại mỗi 30 phút nên sang ngày mới hạn mức vẫn đúng dù chưa mở app.
+* Thêm widget: giữ lâu màn hình chính → *Tiện ích* → **FinBud – Hạn mức hôm nay**.
+
 ---
 
 ## Mô hình quét hóa đơn (notebook)
@@ -123,12 +144,16 @@ FinBud-app/
 │  ├─ receipt_lexicon.json     # Từ khóa + danh mục
 │  └─ receipt_model.json       # Mô hình trích xuất hóa đơn + phân loại danh mục
 ├─ tools/category/             # Sinh dữ liệu, train, đánh giá bộ phân loại danh mục
+├─ tools/widget/               # Kiểm tra QuickParser (Java) khớp với JS
 ├─ android/app/src/main/
 │  ├─ assets/model-vn/         # Model Vosk tiếng Việt (+ file uuid)
 │  └─ java/com/tnn/finbud/
 │     ├─ MainActivity.java     # Đăng ký plugin
-│     ├─ VoskPlugin.java       # Giọng nói offline
-│     └─ ReceiptScannerPlugin.java  # OCR ML Kit
+│     ├─ AndroidSpeechPlugin.java   # Nhận giọng của Android (chế độ chính)
+│     ├─ VoskPlugin.java       # Giọng nói trên máy (dự phòng)
+│     ├─ ReceiptScannerPlugin.java  # OCR ML Kit
+│     ├─ FinBudWidget.java, WidgetPlugin.java   # Widget màn hình chính
+│     └─ QuickAddActivity.java, QuickParser.java  # Bảng nhập nhanh từ widget
 ├─ capacitor.config.json
 └─ .github/workflows/build-apk.yml
 ```
@@ -170,6 +195,8 @@ Cần chạy qua server để app tải được `receipt_model.json`; mở th�
 | "Model chưa sẵn sàng" | Thư mục model phải tên đúng `assets` (không phải `assests`), nằm ở `android/app/src/main/assets/model-vn/` |
 | Lỗi nạp model, báo thiếu `uuid` | Cần file văn bản `uuid` (một dòng bất kỳ) trong `assets/model-vn/`; đổi nội dung khi thay model |
 | Không bật được micro | Chưa cấp quyền micro; app xin quyền ở lần bấm **Nói** đầu tiên |
+| Báo "chưa có gói tiếng Việt ngoại tuyến" | Đang ở chế độ *Chỉ trên máy*. Tải gói tiếng Việt trong cài đặt nhận giọng nói của Android (thường ở Google → Giọng nói / Nhận dạng giọng nói ngoại tuyến), hoặc để app dùng Vosk |
+| Nhận giọng kém, hay nghe sai số | Có thể app đang dùng Vosk (mất mạng hoặc chế độ *Chỉ trên máy* khi chưa có gói ngoại tuyến). Nói chậm, rõ đơn vị tiền ("nghìn", "k") |
 | Không thấy lỗi gì | Mở `chrome://inspect` xem console WebView, hoặc `adb logcat` lọc `Capacitor`, `vosk` |
 
 ---
@@ -185,7 +212,9 @@ Cần chạy qua server để app tải được `receipt_model.json`; mở th�
 - [ ] **Học từ những lần người dùng sửa danh mục:** ghi nhớ trên máy để lần sau đoán đúng theo thói quen riêng
 - [ ] **Đánh giá trên hóa đơn thật của sinh viên:** thu thập 100–200 mẫu (trà sữa, tạp hóa, siêu thị), đo độ chính xác tổng tiền và cải thiện mô hình
 - [ ] **Tự động đọc thông báo biến động số dư (Coming soon):** lắng nghe thông báo từ Vietcombank, MB Bank, Techcombank, MoMo, ZaloPay... qua dịch vụ Android Native với whitelist bảo vệ quyền riêng tư (hiện có nút Giả lập để xem trước)
-- [ ] **Home Screen Widget (Android AppWidget):** đưa con số chi tiêu ngày ra màn hình chính/màn hình khóa
+- [x] **Home Screen Widget:** con số chi tiêu ngày trên màn hình chính, nhập nhanh không cần mở app
+- [x] **Nhận giọng của Android** làm chế độ chính, Vosk làm dự phòng
+- [ ] **Đo độ chính xác giọng nói:** đọc bộ câu mẫu với từng chế độ, so tỷ lệ đúng số tiền và danh mục
 - [ ] **Bóc tách từng dòng sản phẩm:** mở rộng pipeline CRAFT + VietOCR / mô hình hiểu bố cục để lấy chi tiết món hàng
 - [ ] **Bảo mật & đồng bộ:** mã hóa cơ sở dữ liệu AES-256, sao lưu và đồng bộ đa thiết bị
 
@@ -199,4 +228,6 @@ Cần chạy qua server để app tải được `receipt_model.json`; mở th�
 * Hóa đơn quá dài hoặc chụp nghiêng, nhàu có thể làm giảm độ chính xác.
 * Bộ phân loại học từ dữ liệu tự sinh; từ hiếm hoặc cách gọi riêng vẫn có thể bị đoán sai, nên app luôn cho chọn lại danh mục trước khi lưu.
 * Nếu tự nhập tiền nhà, điện, nước… dù đã khai trong Chi phí cố định, khoản đó sẽ bị tính hai lần.
-* Chưa có đọc thông báo ngân hàng tự động (chỉ có giả lập) và widget màn hình chính.
+* Ở chế độ nhận giọng *Chính xác nhất*, âm thanh được gửi lên máy chủ của dịch vụ nhận giọng (thường là Google). Chọn *Chỉ trên máy* nếu không muốn.
+* Máy không có dịch vụ nhận giọng (không có Google) chỉ dùng được Vosk, độ chính xác thấp hơn.
+* Chưa có đọc thông báo ngân hàng tự động (chỉ có giả lập).
