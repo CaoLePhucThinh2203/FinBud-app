@@ -34,6 +34,16 @@
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
 
+        <!-- Bảng nhập nhanh mở từ widget: nằm ở nửa dưới màn hình, task riêng để không kéo app lên phía sau -->
+        <activity
+            android:name=".QuickAddActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:taskAffinity="com.tnn.finbud.quickadd"
+            android:theme="@style/FinBudQuickSheet"
+            android:windowSoftInputMode="stateAlwaysVisible|adjustResize" />
+
         <!-- Widget màn hình chính: hạn mức hôm nay + nút Nói/gõ, Quét hóa đơn -->
         <receiver
             android:name=".FinBudWidget"
@@ -50,6 +60,13 @@
     </application>
 
 
+
+    <!-- Cho phép tìm dịch vụ nhận giọng nói của hệ thống (Android 11+) -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
 
     <!-- Permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
