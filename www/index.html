@@ -162,7 +162,9 @@ function render(){
   <div class="mut">Tiền nhà, học phí, internet…</div>
   <div class="hint">Hạn mức mỗi ngày = (Có thể chi − Đã chi) ÷ số ngày còn lại.</div></div>
   <h2>Thông báo ngân hàng <span class="tag">Coming soon</span></h2><div class="card"><div class="mut">Tự ghi chi tiêu từ thông báo biến động số dư (MB, Vietcombank, MoMo…). Bấm nút dưới để xem thử.</div><button class="btn g w" onclick="simNoti()">Giả lập thông báo</button></div>
+  ${VP()?'<h2>Chẩn đoán</h2><div class="card"><div class="mut" id="diag">Đang đọc…</div><button class="btn g w" onclick="copyDiag()">Sao chép để gửi hỗ trợ</button></div>':""}
   <button class="btn r w" style="margin-top:22px" onclick="if(confirm('Xóa toàn bộ dữ liệu?')){S.set=null;S.tx=[];S.inc=[];save();render()}">Xóa toàn bộ dữ liệu</button>`;
+  loadDiag();
  }
 }
 /* Giả lập thông báo biến động số dư: hiện banner như thông báo hệ thống rồi tự ghi giao dịch (s:"Thông báo") */
@@ -179,7 +181,7 @@ function del(id){if(confirm("Xóa giao dịch này?")){S.tx=S.tx.filter(t=>t.id!
 function open(h,lk){lock=!!lk;$("#panel").innerHTML=h;$("#sheet").classList.add("show")}
 /* Khuôn chung cho mọi bảng: vạch kéo, tiêu đề, nút Đóng ở góc phải */
 function sheet(t,b,lk){open(`<div class="grab"></div><div class="shh"><h1>${t}</h1>${lk?"":'<button class="x" onclick="closeSheet()">Đóng</button>'}</div>`+b,lk)}
-function closeSheet(){$("#sheet").classList.remove("show");dr=null;if(isListening)stopVoice()}
+function closeSheet(){$("#sheet").classList.remove("show");dr=null;if(voiceEngine)stopVoice(true)}
 function setup(){sheet("Chào mừng đến FinBud",`<div class="mut" style="margin:-8px 0 8px">Thiết lập ngân sách tháng này để biết mỗi ngày được tiêu bao nhiêu.</div>
  <label class="s">Tên của bạn<input id="sn" placeholder="Nhập tên của bạn"></label>
  <label class="s">Ngân sách tháng (đ)<input id="sb" type="number" inputmode="numeric" value="5000000"></label>
@@ -214,72 +216,64 @@ const getTheme=()=>theme||"auto";
 function applyTheme(){const t=getTheme(),r=document.documentElement;if(t==="auto")r.removeAttribute("data-theme");else r.dataset.theme=t}
 function setTheme(t){theme=t;try{localStorage.setItem(TK,t)}catch(e){}applyTheme();render();syncWidget()}
 /* --- Giọng nói ---
-   1) Nhận giọng của Android (AndroidSpeechPlugin, thường là Google): chính xác nhất.
-      Chế độ "Chỉ trên máy" thì yêu cầu chạy ngoại tuyến, âm thanh không rời khỏi máy.
-   2) Vosk (VoskPlugin, model đóng gói trong APK): dự phòng khi mất mạng / chưa có gói tiếng Việt ngoại tuyến /
-      máy không có dịch vụ nhận giọng. Model chỉ nạp khi cần (hoặc nạp sẵn ở nền nếu chắc chắn sẽ dùng).
-   3) Web Speech API: khi chạy thử trên trình duyệt.
-   Kết quả giọng nói đi qua VoiceParse (voice-parse.js) để đổi số đọc bằng chữ thành chữ số trước khi phân tích. */
+   Trên điện thoại: MỘT hệ thống chung (VoiceEngine.java, plugin FinBudVoice) cho cả 3 nút Nói:
+   nút Nói ở widget, nút Nói trong pop-up nhập nhanh và nút Nói ở đây.
+     Chính xác nhất: nhận giọng của Android (ưu tiên Google) -> lỗi mạng / dịch vụ / ngôn ngữ -> Vosk.
+     Chỉ trên máy:   bộ nhận on-device nếu máy có gói tiếng Việt -> không có -> Vosk. Âm thanh không rời khỏi máy.
+   Kết quả trả về đã đổi số đọc bằng chữ thành chữ số (VoiceNumbers.java, khớp voice-parse.js).
+   Trên trình duyệt (chạy thử): Web Speech API + voice-parse.js. */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition, VK="finbud.voice";
 let voiceMode;try{voiceMode=localStorage.getItem(VK)}catch(e){}
 const getVoiceMode=()=>voiceMode==="device"?"device":"best";
-function setVoiceMode(m){voiceMode=m;try{localStorage.setItem(VK,m)}catch(e){}render();syncWidget();if(m==="device")ensureVosk(true).catch(()=>{})}
-const AS=()=>window.Capacitor?.Plugins?.AndroidSpeech,VV=()=>window.Capacitor?.Plugins?.VoskVoice;
-let voiceEngine=null,voskReady=null;
+const VP=()=>window.Capacitor?.Plugins?.FinBudVoice;
+function setVoiceMode(m){voiceMode=m;try{localStorage.setItem(VK,m)}catch(e){}render();syncWidget();VP()?.prepare({deviceOnly:m==="device"}).catch(()=>{})}
+let voiceEngine=null;   // "native" | "web" | null
 
-/* Nạp model Vosk một lần; quiet = nạp ngầm ở nền, không báo gì */
-function ensureVosk(quiet){const v=VV();if(!v)return Promise.reject(new Error("Không có Vosk"));
- if(!voskReady){if(!quiet)toast("Đang nạp nhận giọng trên máy…");
-  voskReady=v.initModel().catch(e=>{voskReady=null;throw e})}
- return voskReady}
-
-/* Chọn phương án nghe tốt nhất và đổi "ba mươi lăm nghìn" -> "35.000đ" để parseAmt và người dùng cùng thấy chữ số */
+/* Chỉ dùng cho Web Speech (trình duyệt); trên điện thoại VoiceEngine đã làm việc này */
 function normalizeVoice(text,alts){const V=window.VoiceParse;if(!V)return text;
  const t=V.pickVoiceText({text,alternatives:alts||[]}),r=V.parseAmt(t);
  if(!(r.a>0))return t;const n=r.n==="chi tiêu"?"":r.n;return(n+" "+fmt(r.a)).trim()}
-function voiceDone(text,alts,src){voiceEngine=null;isListening=false;setMic(false);const q=$("#qi");if(!q||!text)return;
- q.value=normalizeVoice(text,alts);analyze(src)}
+function voiceDone(text,src){voiceEngine=null;isListening=false;setMic(false);const q=$("#qi");if(!q||!text)return;
+ q.value=text;analyze(src)}
 function voiceFail(msg){voiceEngine=null;isListening=false;setMic(false);if(msg)toast(msg)}
 
-function initVoice(){
- const a=AS(),v=VV();
- a?.addListener("partial",e=>{const q=$("#qi");if(q&&voiceEngine==="android")q.value=e.text});
- a?.addListener("result",e=>{if(voiceEngine==="android")voiceDone(e.text,e.alternatives,"Voice")});
- a?.addListener("error",e=>{if(voiceEngine!=="android")return;
-  if(e.fallback&&v){toast(getVoiceMode()==="device"?"Chưa có gói tiếng Việt ngoại tuyến, chuyển sang nhận giọng Vosk":"Không có mạng, chuyển sang nhận giọng trên máy (Vosk)");startVosk()}
-  else voiceFail(e.message)});
- v?.addListener("onVoiceResult",d=>{if(voiceEngine!=="vosk")return;const q=$("#qi");
-  if(!d.isFinal){if(q&&d.text)q.value=d.text;return}
-  v.stopListening();voiceDone(d.text,d.alternatives,"Voice Offline")});
- v?.addListener("onError",e=>{if(voiceEngine==="vosk")voiceFail("Lỗi mic: "+e.error)});
- // Nạp sẵn Vosk ở nền khi gần như chắc chắn sẽ dùng: chế độ "Chỉ trên máy" hoặc máy không có dịch vụ nhận giọng
- if(v)setTimeout(async()=>{let ok=false;try{ok=a&&(await a.isAvailable()).available}catch(e){}
-  if(getVoiceMode()==="device"||!ok)ensureVosk(true).catch(()=>{})},3000);
+function initVoice(){const p=VP();if(!p)return;
+ p.addListener("state",e=>{if(voiceEngine!=="native")return;const i=$("#qi");
+  if(i&&e.state==="loading")i.placeholder="Đang nạp nhận giọng trên máy…";else if(i&&e.state==="listening")i.placeholder="Đang nghe…"});
+ p.addListener("partial",e=>{const q=$("#qi");if(q&&voiceEngine==="native")q.value=e.text});
+ p.addListener("info",e=>{if(voiceEngine==="native")toast(e.message)});
+ p.addListener("result",e=>{if(voiceEngine==="native")voiceDone(e.text,e.engine==="vosk"?"Voice Offline":"Voice")});
+ p.addListener("error",e=>{if(voiceEngine==="native")voiceFail(e.message)});
+ setTimeout(()=>p.prepare({deviceOnly:getVoiceMode()==="device"}).catch(()=>{}),3000);   // nạp trước những gì sẽ cần
 }
 if(document.readyState==="loading")window.addEventListener("DOMContentLoaded",initVoice);else initVoice();
 
-async function startVosk(){const v=VV();
- try{voiceEngine="vosk";isListening=true;setMic(true);await ensureVosk();
-  if(voiceEngine!=="vosk")return;await v.startListening()}
- catch(e){voiceFail("Không bật được nhận giọng trên máy: "+(e.message||e))}}
-async function startVoice(){
- const a=AS(),v=VV(),P=a||v;
- if(P){try{const p=await P.requestPermissions();if(p.audio!=="granted"){toast("Cần cấp quyền micro để nói");return}}catch(e){}}
- if(a){let st={};try{st=await a.isAvailable()}catch(e){}
-  if(st.available){voiceEngine="android";isListening=true;setMic(true);
-   try{await a.start({offline:getVoiceMode()==="device"})}catch(e){if(v)startVosk();else voiceFail("Không bật được micro")}
-   return}}
- if(v){startVosk();return}
+async function startVoice(){const p=VP();
+ if(p){
+  try{const r=await p.requestPermissions();if(r.audio!=="granted"){toast("Cần cấp quyền micro để nói");return}}catch(e){}
+  voiceEngine="native";isListening=true;setMic(true);
+  p.start({deviceOnly:getVoiceMode()==="device"}).catch(e=>voiceFail("Không bật được nhận giọng nói: "+(e.message||e)));
+  return}
  if(!SR){toast("Máy chưa hỗ trợ nhận giọng nói trong app. Dùng micro bàn phím nhé");$("#qi").focus();return}
  const r=new SR();r.lang="vi-VN";r.maxAlternatives=3;voiceEngine="web";isListening=true;setMic(true);
- r.onresult=e=>{const res=e.results[0],alts=[...res].map(x=>x.transcript);voiceDone(alts[0],alts,"Voice")};
+ r.onresult=e=>{const res=e.results[0],alts=[...res].map(x=>x.transcript);voiceDone(normalizeVoice(alts[0],alts),"Voice")};
  r.onerror=()=>voiceFail("Không nghe rõ, bạn thử lại nhé");
  r.onend=()=>{if(voiceEngine==="web")voiceFail()};
  try{r.start()}catch(e){voiceFail()}}
-function stopVoice(){const e=voiceEngine;isListening=false;setMic(false);
- if(e==="android")AS()?.stop().catch(()=>{});            // giữ voiceEngine để nhận nốt phần đã nói
- else{voiceEngine=null;if(e==="vosk")VV()?.stopListening().catch(()=>{})}}
+/* Dừng: vẫn nhận nốt phần đã nói. Huỷ (đóng bảng): bỏ luôn. */
+function stopVoice(cancel){const e=voiceEngine;isListening=false;setMic(false);
+ if(e==="native"){if(cancel){voiceEngine=null;VP()?.cancel().catch(()=>{})}else VP()?.stop().catch(()=>{})}
+ else voiceEngine=null}
 
+/* Cài đặt → Chẩn đoán: dịch vụ nhận giọng, gói tiếng Việt trên máy, Vosk, lỗi gần nhất (kể cả lỗi văng pop-up của widget) */
+let diagText="";
+async function loadDiag(){const p=VP(),el=$("#diag");if(!p||!el)return;
+ try{const d=await p.diagnostics(),L=d.lastError;
+  diagText=["Máy: "+d.device+" · Android "+d.android,"Nhận giọng trực tuyến: "+d.service,"Nhận giọng trên máy: "+d.onDevice,"Vosk: "+d.vosk,
+   "Dịch vụ có trên máy: "+((d.services||[]).join(", ")||"không có"),"Chế độ: "+(getVoiceMode()==="device"?"Chỉ trên máy":"Chính xác nhất"),
+   "Lỗi gần nhất: "+(L?L.time+" · "+L.where+" · "+L.detail:"không có")].join("\n");
+  el.innerHTML=esc(diagText.split("\n").slice(0,7).join("\n")).replace(/\n/g,"<br>")}catch(e){el.textContent="Không đọc được thông tin"}}
+function copyDiag(){try{navigator.clipboard.writeText(diagText);toast("Đã sao chép")}catch(e){toast("Không sao chép được")}}
 function setMic(on){const f=$("#qf"),b=$("#mic"),i=$("#qi");if(f)f.classList.toggle("on",on);if(b)b.textContent=on?"Dừng":"Nói";if(i)i.placeholder=on?"Đang nghe…":"ăn bún bò 35k"}
 function quick(){
  sheet("Nhập nhanh",`<div class="fld" id="qf"><input id="qi" placeholder="ăn bún bò 35k" enterkeyhint="done" autocomplete="off"><button class="mic" id="mic">Nói</button></div><div id="qr"></div>`);

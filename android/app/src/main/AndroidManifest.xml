@@ -34,12 +34,12 @@
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
 
-        <!-- Bảng nhập nhanh mở từ widget: nằm ở nửa dưới màn hình, task riêng để không kéo app lên phía sau -->
+        <!-- Bảng nhập nhanh mở từ widget: nằm ở nửa dưới màn hình, task riêng để không kéo app lên phía sau.
+             Không dùng launchMode="singleTask": kiểu đó làm hộp thoại nhận giọng của hệ thống trả kết quả "huỷ" ngay. -->
         <activity
             android:name=".QuickAddActivity"
             android:exported="false"
             android:excludeFromRecents="true"
-            android:launchMode="singleTask"
             android:taskAffinity="com.tnn.finbud.quickadd"
             android:theme="@style/FinBudQuickSheet"
             android:windowSoftInputMode="stateAlwaysVisible|adjustResize" />
