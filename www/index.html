@@ -46,6 +46,7 @@ input,select{width:100%;border:1px solid var(--line);background:var(--bg);color:
 .laser{position:absolute;left:30px;right:30px;height:3px;background:#3ef0c0;box-shadow:0 0 12px #3ef0c0;top:20px;animation:l 1.2s linear infinite;display:none;z-index:3}.scanning .laser{display:block}@keyframes l{to{top:205px}}
 .toast{position:absolute;left:50%;bottom:calc(84px + var(--sab));transform:translateX(-50%);background:#14211e;color:#fff;padding:9px 14px;border-radius:20px;font-size:13px;opacity:0;transition:.3s;z-index:9;pointer-events:none;max-width:90%;text-align:center}.toast.show{opacity:1}
 label.s{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;font-size:14px}label.s input{width:150px;text-align:right}
+.noti{position:absolute;left:10px;right:10px;top:calc(10px + var(--sat));background:var(--card);color:var(--tx);border:1px solid var(--line);border-radius:16px;padding:10px 12px;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:8;display:flex;gap:10px;align-items:flex-start;transform:translateY(-140%);transition:transform .35s}.noti.show{transform:none}.noti .ic{flex:none}.noti b{font-size:13px}.noti div{font-size:12px;line-height:1.35}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}.chip{border:1px solid var(--line);background:var(--card);color:var(--tx);border-radius:20px;padding:7px 12px;font-size:13px}
 </style>
 </head>
@@ -124,9 +125,19 @@ function render(){
   <label class="s">Ngân sách khả dụng<input type="number" inputmode="numeric" value="${S.set.budget}" onchange="S.set.budget=+this.value||0;save();toast('Đã lưu')"></label>
   <label class="s">Chi phí cố định<input type="number" inputmode="numeric" value="${S.set.fixed}" onchange="S.set.fixed=+this.value||0;save();toast('Đã lưu')"></label>
   <div class="mut">Hạn mức ngày = (Ngân sách − Chi phí cố định − Đã chi) ÷ số ngày còn lại</div></div>
-  <h2>Thông báo ngân hàng <span class="tag" style="font-size:11px;padding:2px 8px;vertical-align:middle">Coming soon</span></h2><div class="card mut">Tính năng tự động đọc thông báo biến động số dư (MB, Vietcombank, MoMo…) đang được phát triển cho phiên bản tiếp theo. Tạm thời, bạn có thể dán nội dung thông báo vào ô “Nói / gõ”.</div>
+  <h2>Thông báo ngân hàng <span class="tag" style="font-size:11px;padding:2px 8px;vertical-align:middle">Coming soon</span></h2><div class="card mut">Tính năng tự động đọc thông báo biến động số dư (MB, Vietcombank, MoMo…) đang được phát triển cho phiên bản tiếp theo. Bạn có thể bấm nút dưới để xem thử luồng tự ghi chi tiêu khi có thông báo.<button class="btn g" style="width:100%;margin-top:10px" onclick="simNoti()">🔔 Giả lập thông báo</button></div>
   <button class="btn r" style="margin-top:14px;width:100%" onclick="if(confirm('Xóa toàn bộ dữ liệu?')){S.set=null;S.tx=[];save();render()}">Xóa toàn bộ dữ liệu</button>`;
  }
+}
+/* Giả lập thông báo biến động số dư: hiện banner như thông báo hệ thống rồi tự ghi giao dịch (s:"Thông báo") */
+const SIM=[["MB Bank","TK 03xxx868 -35,000VND","THANH TOAN QR BUN BO HUE CO BA"],["Vietcombank","TK 1xxx234 -28,000VND","GRAB CAR HCM"],["MoMo","Thanh toán thành công -45.000đ","Trà sữa Phúc Long"],["Techcombank","TK 19xxx77 -120,000VND","SHOPEE ORDER AO THUN"],["ZaloPay","Thanh toán -15.000đ","Photo tài liệu học tập"],["VPBank","TK xxx901 -59,000VND","CIRCLE K CA PHE"]];
+function simNoti(){
+ const [bank,line,note]=SIM[Math.floor(Math.random()*SIM.length)],a=num(line.match(/-([\d.,]+)/)[1]);
+ let nb=$("#noti");if(!nb){nb=document.createElement("div");nb.id="noti";nb.className="noti";document.querySelector(".phone").appendChild(nb)}
+ const t=new Date();nb.innerHTML=`<div class="ic">🏦</div><div><b>${esc(bank)}</b> <span class="mut">· ${pad(t.getHours())}:${pad(t.getMinutes())}</span><div>${esc(line)}</div><div class="mut">ND: ${esc(note)}</div></div>`;
+ nb.classList.add("show");clearTimeout(nb._t);nb._t=setTimeout(()=>nb.classList.remove("show"),3500);
+ setTimeout(()=>{const c=window.ReceiptEngine&&ReceiptEngine._t?ReceiptEngine._t.categorize(note):classify(note);
+  S.tx.unshift({id:Date.now(),a,c:CATS[c]?c:classify(note),n:note,s:"Thông báo",d:ds(t)});save();render();toast("⚡ Đã tự ghi "+fmt(a)+" từ thông báo "+bank)},1200);
 }
 function del(id){if(confirm("Xóa giao dịch này?")){S.tx=S.tx.filter(t=>t.id!==id);save();render()}}
 function open(h,lk){lock=!!lk;$("#panel").innerHTML=h;$("#sheet").classList.add("show")}
