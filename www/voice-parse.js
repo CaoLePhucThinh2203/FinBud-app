@@ -1,7 +1,9 @@
 /* FinBud – đọc số tiền từ câu nói/gõ tiếng Việt.
  * Hiểu: "ba mươi lăm nghìn", "một trăm hai mươi nghìn", "hai triệu rưỡi", "một triệu hai", "năm xị", "hai chục", "nửa triệu",
  *       "bốn lăm ca", "35k", "2 triệu rưỡi", "1,5 triệu", "45.000đ"...  Số nhỏ (<1000) không có đơn vị được hiểu là nghìn đồng.
- * Dùng:  parseAmt("ăn bún bò ba mươi lăm nghìn") -> { a: 35000, n: "ăn bún bò" } ;  a = 0 nếu không thấy số tiền. */
+ * Dùng:  VoiceParse.parseAmt("ăn bún bò ba mươi lăm nghìn") -> { a: 35000, n: "ăn bún bò" } ;  a = 0 nếu không thấy số tiền.
+ * Chỉ dùng cho kết quả GIỌNG NÓI (index.html: normalizeVoice) để đổi số đọc bằng chữ thành chữ số;
+ * phần gõ tay vẫn dùng parseAmt() trong index.html (bản Java QuickParser cho widget khớp với hàm đó). */
 (function () {
   const D = { "một": 1, hai: 2, ba: 3, "bốn": 4, "năm": 5, "sáu": 6, "bảy": 7, "bẩy": 7, "tám": 8, "chín": 9 };
   const UNIT = { "nghìn": 1e3, "ngàn": 1e3, k: 1e3, ca: 1e3, ka: 1e3, "triệu": 1e6, tr: 1e6, "củ": 1e6, "tỷ": 1e9, "xị": 1e5 };
@@ -62,8 +64,6 @@
     const note = tk.filter((t, k) => k < best.i || k >= best.j).filter(t => !SKIP.has(t)).join(" ");
     return { a: best.v, n: note || "chi tiêu", explicit: best.explicit };
   }
-  if (typeof window !== "undefined") window.parseAmt = parseAmt;
-  if (typeof module !== "undefined") module.exports = parseAmt;
 
   /* Từ vựng cho chế độ "giới hạn từ" của Vosk (tuỳ chọn). Từ không có trong model sẽ bị Vosk bỏ qua (xem logcat). */
   const VOICE_GRAMMAR = ("không một hai ba bốn năm sáu bảy tám chín mười mươi mốt tư lăm nhăm trăm linh lẻ nghìn ngàn triệu tỷ chục xị rưỡi nửa đồng k " +
@@ -75,7 +75,8 @@
     const list = [data.text].concat(data.alternatives || []).filter(Boolean);
     return list.find(t => { const r = parseAmt(t); return r.a > 0 && r.explicit; }) || list.find(t => parseAmt(t).a > 0) || list[0] || "";
   }
-  if (typeof window !== "undefined") { window.VOICE_GRAMMAR = VOICE_GRAMMAR; window.pickVoiceText = pickVoiceText; }
-  if (typeof module !== "undefined") { module.exports.pickVoiceText = pickVoiceText; module.exports.VOICE_GRAMMAR = VOICE_GRAMMAR; }
+  const API = { parseAmt, pickVoiceText, VOICE_GRAMMAR };
+  if (typeof window !== "undefined") window.VoiceParse = API;
+  if (typeof module !== "undefined") module.exports = API;
 
 })();
