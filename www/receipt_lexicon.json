@@ -1,1 +1,2803 @@
-{"version":1,"categories":["food","move","study","shop","other"],"kw":{"total":["tong cong","tong tien","tong thanh toan","thanh toan","total","phai tra","can thanh toan","tong so tien","tong gia tri"],"sub":["tam tinh","subtotal","thanh tien","cong tien hang"],"cash":["tien mat","khach dua","tien khach","cash","khach tra"],"change":["tien thua","tra lai","change","tien du"],"disc":["giam gia","chiet khau","khuyen mai","discount","voucher","uu dai"],"vat":["vat","thue","gtgt"],"addr":["dia chi","dc","duong","phuong","quan","thanh pho","tp","tinh","huyen","xa","kdc","toa nha","tang","khu pho","kcn","ap"],"seller":["cong ty","tnhh","co phan","cua hang","sieu thi","nha hang","quan an","mart","store","shop","coffee","cafe","tiem","chi nhanh"]},"cat_kw":{"food":[["lotteria",3],["kfc",3],["jollibee",3],["highlands",3],["phuc long",3],["the coffee house",3],["trung nguyen",3],["starbucks",3],["gong cha",3],["tocotoco",3],["koi the",3],["pizza",3],["mcdonald",3],["burger king",3],["texas chicken",3],["popeyes",3],["pho 24",3],["com",1],["bun",1],["pho",1],["mi",1],["tra sua",2],["tra dao",2],["tra chanh",2],["ca phe",2],["cafe",2],["coffee",2],["banh mi",2],["banh",1],["kem",1],["che",1],["nuoc",1],["quan an",2],["nha hang",2],["an uong",2],["tea",1],["bbq",2],["lau",1],["nuong",1],["sinh to",2],["french fries",2],["burger",1]],"move":[["grab",3],["gojek",3],["xanh sm",3],["vinfast",2],["mai linh",3],["vinasun",3],["petrolimex",3],["xang",2],["dau diesel",2],["gui xe",3],["giu xe",3],["ve xe",2],["bai xe",3],["taxi",2],["bus",1],["buyt",2],["metro",2],["phuong trang",3],["ve tau",2],["vetc",2],["parking",2],["be",1]],"study":[["fahasa",3],["phuong nam",3],["nha sach",3],["sach",2],["van phong pham",3],["vpp",2],["thien long",3],["photocopy",3],["photo",2],["in an",2],["hoc phi",3],["khoa hoc",2],["giao trinh",3],["thu vien",2],["vo",1],["but",1]],"shop":[["winmart",3],["vinmart",3],["co op mart",3],["coopmart",3],["coop mart",3],["coopfood",3],["bach hoa xanh",3],["circle k",3],["ministop",3],["family mart",3],["familymart",3],["gs25",3],["7 eleven",3],["lotte mart",3],["aeon",3],["big c",3],["mega market",3],["emart",3],["guardian",3],["watsons",3],["uniqlo",3],["thegioididong",3],["the gioi di dong",3],["dien may xanh",3],["fpt shop",3],["lazada",2],["tiki",2],["shopee",2],["sieu thi",2],["tap hoa",2],["cua hang",1],["mart",2],["store",1],["shop",1],["quan ao",2],["giay",1],["my pham",2]],"other":[["pharmacity",3],["long chau",3],["nha thuoc",3],["benh vien",3],["phong kham",3],["viettel",2],["vinaphone",2],["mobifone",2],["internet",2],["tien nha",2],["tien dien",2],["tien nuoc",2]]}}
+{
+ "version": 3,
+ "categories": [
+  "food",
+  "move",
+  "study",
+  "shop",
+  "health",
+  "fun",
+  "other"
+ ],
+ "kw": {
+  "total": [
+   "tong cong",
+   "tong tien",
+   "tong thanh toan",
+   "thanh toan",
+   "total",
+   "phai tra",
+   "can thanh toan",
+   "tong so tien",
+   "tong gia tri"
+  ],
+  "sub": [
+   "tam tinh",
+   "subtotal",
+   "thanh tien",
+   "cong tien hang"
+  ],
+  "cash": [
+   "tien mat",
+   "khach dua",
+   "tien khach",
+   "cash",
+   "khach tra"
+  ],
+  "change": [
+   "tien thua",
+   "tra lai",
+   "change",
+   "tien du"
+  ],
+  "disc": [
+   "giam gia",
+   "chiet khau",
+   "khuyen mai",
+   "discount",
+   "voucher",
+   "uu dai"
+  ],
+  "vat": [
+   "vat",
+   "thue",
+   "gtgt"
+  ],
+  "addr": [
+   "dia chi",
+   "dc",
+   "duong",
+   "phuong",
+   "quan",
+   "thanh pho",
+   "tp",
+   "tinh",
+   "huyen",
+   "xa",
+   "kdc",
+   "toa nha",
+   "tang",
+   "khu pho",
+   "kcn",
+   "ap"
+  ],
+  "seller": [
+   "cong ty",
+   "tnhh",
+   "co phan",
+   "cua hang",
+   "sieu thi",
+   "nha hang",
+   "quan an",
+   "mart",
+   "store",
+   "shop",
+   "coffee",
+   "cafe",
+   "tiem",
+   "chi nhanh"
+  ]
+ },
+ "cat_kw": {
+  "food": [
+   [
+    "lotteria",
+    3
+   ],
+   [
+    "kfc",
+    3
+   ],
+   [
+    "jollibee",
+    3
+   ],
+   [
+    "highlands",
+    3
+   ],
+   [
+    "phuc long",
+    3
+   ],
+   [
+    "the coffee house",
+    3
+   ],
+   [
+    "trung nguyen",
+    3
+   ],
+   [
+    "starbucks",
+    3
+   ],
+   [
+    "gong cha",
+    3
+   ],
+   [
+    "tocotoco",
+    3
+   ],
+   [
+    "koi the",
+    3
+   ],
+   [
+    "pizza",
+    3
+   ],
+   [
+    "mcdonald",
+    3
+   ],
+   [
+    "burger king",
+    3
+   ],
+   [
+    "texas chicken",
+    3
+   ],
+   [
+    "popeyes",
+    3
+   ],
+   [
+    "pho 24",
+    3
+   ],
+   [
+    "com",
+    1
+   ],
+   [
+    "bun",
+    1
+   ],
+   [
+    "pho",
+    1
+   ],
+   [
+    "mi",
+    1
+   ],
+   [
+    "tra sua",
+    2
+   ],
+   [
+    "tra dao",
+    2
+   ],
+   [
+    "tra chanh",
+    2
+   ],
+   [
+    "ca phe",
+    2
+   ],
+   [
+    "cafe",
+    2
+   ],
+   [
+    "coffee",
+    2
+   ],
+   [
+    "banh mi",
+    2
+   ],
+   [
+    "banh",
+    1
+   ],
+   [
+    "kem",
+    1
+   ],
+   [
+    "che",
+    1
+   ],
+   [
+    "nuoc",
+    1
+   ],
+   [
+    "quan an",
+    2
+   ],
+   [
+    "nha hang",
+    2
+   ],
+   [
+    "an uong",
+    2
+   ],
+   [
+    "tea",
+    1
+   ],
+   [
+    "bbq",
+    2
+   ],
+   [
+    "lau",
+    1
+   ],
+   [
+    "nuong",
+    1
+   ],
+   [
+    "sinh to",
+    2
+   ],
+   [
+    "french fries",
+    2
+   ],
+   [
+    "burger",
+    1
+   ],
+   [
+    "pho bo",
+    2
+   ],
+   [
+    "pho ga",
+    2
+   ],
+   [
+    "bun bo",
+    2
+   ],
+   [
+    "bun bo hue",
+    2
+   ],
+   [
+    "bun cha",
+    2
+   ],
+   [
+    "bun rieu",
+    2
+   ],
+   [
+    "bun dau mam tom",
+    2
+   ],
+   [
+    "bun thit nuong",
+    2
+   ],
+   [
+    "hu tieu",
+    2
+   ],
+   [
+    "mi quang",
+    2
+   ],
+   [
+    "cao lau",
+    2
+   ],
+   [
+    "com tam",
+    2
+   ],
+   [
+    "com ga",
+    2
+   ],
+   [
+    "com suon",
+    2
+   ],
+   [
+    "com van phong",
+    2
+   ],
+   [
+    "com binh dan",
+    2
+   ],
+   [
+    "com rang",
+    2
+   ],
+   [
+    "com chien",
+    2
+   ],
+   [
+    "banh mi pate",
+    2
+   ],
+   [
+    "banh mi chao",
+    2
+   ],
+   [
+    "xoi",
+    1
+   ],
+   [
+    "xoi ga",
+    2
+   ],
+   [
+    "xoi xeo",
+    2
+   ],
+   [
+    "chao",
+    1
+   ],
+   [
+    "chao long",
+    2
+   ],
+   [
+    "banh cuon",
+    2
+   ],
+   [
+    "banh xeo",
+    2
+   ],
+   [
+    "banh canh",
+    2
+   ],
+   [
+    "banh bao",
+    2
+   ],
+   [
+    "banh gio",
+    2
+   ],
+   [
+    "goi cuon",
+    2
+   ],
+   [
+    "lau thai",
+    2
+   ],
+   [
+    "lau bo",
+    2
+   ],
+   [
+    "do nuong",
+    2
+   ],
+   [
+    "oc",
+    1
+   ],
+   [
+    "hai san",
+    2
+   ],
+   [
+    "ga ran",
+    2
+   ],
+   [
+    "khoai tay chien",
+    2
+   ],
+   [
+    "hamburger",
+    1
+   ],
+   [
+    "mi cay",
+    2
+   ],
+   [
+    "mi tom",
+    2
+   ],
+   [
+    "mien",
+    1
+   ],
+   [
+    "tra tac",
+    2
+   ],
+   [
+    "ca phe sua da",
+    2
+   ],
+   [
+    "bac xiu",
+    2
+   ],
+   [
+    "nuoc mia",
+    2
+   ],
+   [
+    "nuoc ep",
+    2
+   ],
+   [
+    "nuoc suoi",
+    2
+   ],
+   [
+    "nuoc ngot",
+    2
+   ],
+   [
+    "coca",
+    1
+   ],
+   [
+    "pepsi",
+    1
+   ],
+   [
+    "sting",
+    1
+   ],
+   [
+    "bo huc",
+    2
+   ],
+   [
+    "bia",
+    1
+   ],
+   [
+    "banh trang tron",
+    2
+   ],
+   [
+    "banh flan",
+    2
+   ],
+   [
+    "hoa qua",
+    2
+   ],
+   [
+    "trai cay",
+    2
+   ],
+   [
+    "sua chua",
+    2
+   ],
+   [
+    "sua tuoi",
+    2
+   ],
+   [
+    "bim bim",
+    2
+   ],
+   [
+    "snack",
+    1
+   ],
+   [
+    "do an vat",
+    2
+   ],
+   [
+    "banh ngot",
+    2
+   ],
+   [
+    "banh kem",
+    2
+   ],
+   [
+    "do an",
+    2
+   ],
+   [
+    "com hop",
+    2
+   ],
+   [
+    "bua sang",
+    2
+   ],
+   [
+    "bua trua",
+    2
+   ],
+   [
+    "bua toi",
+    2
+   ],
+   [
+    "do uong",
+    2
+   ],
+   [
+    "rau",
+    1
+   ],
+   [
+    "thit",
+    1
+   ],
+   [
+    "thit heo",
+    2
+   ],
+   [
+    "thit bo",
+    2
+   ],
+   [
+    "ca",
+    1
+   ],
+   [
+    "trung",
+    1
+   ],
+   [
+    "gao",
+    1
+   ],
+   [
+    "mam muoi",
+    2
+   ],
+   [
+    "dau an",
+    2
+   ],
+   [
+    "do nhau",
+    2
+   ],
+   [
+    "di nhau",
+    2
+   ],
+   [
+    "kimbap",
+    1
+   ],
+   [
+    "tokbokki",
+    1
+   ],
+   [
+    "sushi",
+    1
+   ],
+   [
+    "dimsum",
+    1
+   ],
+   [
+    "banh trang nuong",
+    2
+   ],
+   [
+    "nem chua",
+    2
+   ],
+   [
+    "bot chien",
+    2
+   ],
+   [
+    "ha cao",
+    2
+   ],
+   [
+    "katinat",
+    3
+   ],
+   [
+    "phe la",
+    3
+   ],
+   [
+    "cong ca phe",
+    3
+   ],
+   [
+    "pizza hut",
+    3
+   ],
+   [
+    "domino",
+    3
+   ],
+   [
+    "mixue",
+    3
+   ],
+   [
+    "grabfood",
+    3
+   ],
+   [
+    "shopeefood",
+    3
+   ],
+   [
+    "baemin",
+    3
+   ],
+   [
+    "banh mi huynh hoa",
+    3
+   ]
+  ],
+  "move": [
+   [
+    "grab",
+    3
+   ],
+   [
+    "gojek",
+    3
+   ],
+   [
+    "xanh sm",
+    3
+   ],
+   [
+    "vinfast",
+    2
+   ],
+   [
+    "mai linh",
+    3
+   ],
+   [
+    "vinasun",
+    3
+   ],
+   [
+    "petrolimex",
+    3
+   ],
+   [
+    "xang",
+    2
+   ],
+   [
+    "dau diesel",
+    2
+   ],
+   [
+    "gui xe",
+    3
+   ],
+   [
+    "giu xe",
+    3
+   ],
+   [
+    "ve xe",
+    2
+   ],
+   [
+    "bai xe",
+    3
+   ],
+   [
+    "taxi",
+    2
+   ],
+   [
+    "bus",
+    1
+   ],
+   [
+    "buyt",
+    2
+   ],
+   [
+    "metro",
+    2
+   ],
+   [
+    "phuong trang",
+    3
+   ],
+   [
+    "ve tau",
+    2
+   ],
+   [
+    "vetc",
+    2
+   ],
+   [
+    "parking",
+    2
+   ],
+   [
+    "be",
+    1
+   ],
+   [
+    "do xang",
+    2
+   ],
+   [
+    "do xang xe may",
+    2
+   ],
+   [
+    "ve gui xe",
+    2
+   ],
+   [
+    "ve xe thang",
+    2
+   ],
+   [
+    "phi gui xe",
+    2
+   ],
+   [
+    "xe buyt",
+    2
+   ],
+   [
+    "ve xe buyt",
+    2
+   ],
+   [
+    "ve bus",
+    2
+   ],
+   [
+    "grab bike",
+    2
+   ],
+   [
+    "grab car",
+    2
+   ],
+   [
+    "xe om",
+    2
+   ],
+   [
+    "xe om cong nghe",
+    2
+   ],
+   [
+    "ve tau hoa",
+    2
+   ],
+   [
+    "ve may bay",
+    2
+   ],
+   [
+    "ve xe khach",
+    2
+   ],
+   [
+    "xe khach",
+    2
+   ],
+   [
+    "xe limousine",
+    2
+   ],
+   [
+    "ve metro",
+    2
+   ],
+   [
+    "phi cau duong",
+    2
+   ],
+   [
+    "phi cao toc",
+    2
+   ],
+   [
+    "phi bot",
+    2
+   ],
+   [
+    "sua xe",
+    2
+   ],
+   [
+    "sua xe may",
+    2
+   ],
+   [
+    "thay nhot",
+    2
+   ],
+   [
+    "va xe",
+    2
+   ],
+   [
+    "va lop",
+    2
+   ],
+   [
+    "bom xe",
+    2
+   ],
+   [
+    "rua xe",
+    2
+   ],
+   [
+    "thay lop",
+    2
+   ],
+   [
+    "thay sam",
+    2
+   ],
+   [
+    "bao duong xe",
+    2
+   ],
+   [
+    "dang kiem",
+    2
+   ],
+   [
+    "thue xe may",
+    2
+   ],
+   [
+    "thue xe",
+    2
+   ],
+   [
+    "phi do xe",
+    2
+   ],
+   [
+    "do o to",
+    2
+   ],
+   [
+    "sac xe dien",
+    2
+   ],
+   [
+    "thay ac quy",
+    2
+   ],
+   [
+    "bao hiem xe may",
+    2
+   ],
+   [
+    "tien xe",
+    2
+   ],
+   [
+    "tien xang",
+    2
+   ],
+   [
+    "cuoc xe",
+    2
+   ],
+   [
+    "di xe",
+    2
+   ],
+   [
+    "di ve que",
+    2
+   ],
+   [
+    "pvoil",
+    3
+   ],
+   [
+    "futa",
+    3
+   ],
+   [
+    "vietjet",
+    3
+   ],
+   [
+    "vietnam airlines",
+    3
+   ],
+   [
+    "bamboo airways",
+    3
+   ],
+   [
+    "epass",
+    3
+   ],
+   [
+    "honda head",
+    3
+   ]
+  ],
+  "study": [
+   [
+    "fahasa",
+    3
+   ],
+   [
+    "phuong nam",
+    3
+   ],
+   [
+    "nha sach",
+    3
+   ],
+   [
+    "sach",
+    2
+   ],
+   [
+    "van phong pham",
+    3
+   ],
+   [
+    "vpp",
+    2
+   ],
+   [
+    "thien long",
+    3
+   ],
+   [
+    "photocopy",
+    3
+   ],
+   [
+    "photo",
+    2
+   ],
+   [
+    "in an",
+    2
+   ],
+   [
+    "hoc phi",
+    3
+   ],
+   [
+    "khoa hoc",
+    2
+   ],
+   [
+    "giao trinh",
+    3
+   ],
+   [
+    "thu vien",
+    2
+   ],
+   [
+    "vo",
+    1
+   ],
+   [
+    "but",
+    1
+   ],
+   [
+    "but bi",
+    2
+   ],
+   [
+    "but chi",
+    2
+   ],
+   [
+    "but muc",
+    2
+   ],
+   [
+    "but may",
+    2
+   ],
+   [
+    "but da quang",
+    2
+   ],
+   [
+    "but highlight",
+    2
+   ],
+   [
+    "but xoa",
+    2
+   ],
+   [
+    "ruot but",
+    2
+   ],
+   [
+    "thuoc ke",
+    2
+   ],
+   [
+    "compa",
+    1
+   ],
+   [
+    "eke",
+    1
+   ],
+   [
+    "tay",
+    1
+   ],
+   [
+    "gom",
+    1
+   ],
+   [
+    "vo o ly",
+    2
+   ],
+   [
+    "vo ke ngang",
+    2
+   ],
+   [
+    "so tay",
+    2
+   ],
+   [
+    "giay a4",
+    2
+   ],
+   [
+    "giay kiem tra",
+    2
+   ],
+   [
+    "giay note",
+    2
+   ],
+   [
+    "sach giao khoa",
+    2
+   ],
+   [
+    "sach tham khao",
+    2
+   ],
+   [
+    "tu dien",
+    2
+   ],
+   [
+    "may tinh casio",
+    2
+   ],
+   [
+    "may tinh cam tay",
+    2
+   ],
+   [
+    "hop but",
+    2
+   ],
+   [
+    "kep giay",
+    2
+   ],
+   [
+    "bia ho so",
+    2
+   ],
+   [
+    "file kep",
+    2
+   ],
+   [
+    "muc in",
+    2
+   ],
+   [
+    "photo tai lieu",
+    2
+   ],
+   [
+    "in tai lieu",
+    2
+   ],
+   [
+    "in mau",
+    2
+   ],
+   [
+    "dong gay",
+    2
+   ],
+   [
+    "in bai tap",
+    2
+   ],
+   [
+    "in de cuong",
+    2
+   ],
+   [
+    "tai lieu on thi",
+    2
+   ],
+   [
+    "tien hoc",
+    2
+   ],
+   [
+    "hoc them",
+    2
+   ],
+   [
+    "gia su",
+    2
+   ],
+   [
+    "khoa hoc online",
+    2
+   ],
+   [
+    "khoa ielts",
+    2
+   ],
+   [
+    "khoa toeic",
+    2
+   ],
+   [
+    "le phi thi",
+    2
+   ],
+   [
+    "phi thi",
+    2
+   ],
+   [
+    "dang ky thi",
+    2
+   ],
+   [
+    "thi lai",
+    2
+   ],
+   [
+    "hoc lai",
+    2
+   ],
+   [
+    "tin chi",
+    2
+   ],
+   [
+    "the thu vien",
+    2
+   ],
+   [
+    "bang ve",
+    2
+   ],
+   [
+    "mau ve",
+    2
+   ],
+   [
+    "giay ve",
+    2
+   ],
+   [
+    "dung cu hoc tap",
+    2
+   ],
+   [
+    "tien tai lieu",
+    2
+   ],
+   [
+    "in luan van",
+    2
+   ],
+   [
+    "dong quyen bao cao",
+    2
+   ],
+   [
+    "nha sach phuong nam",
+    3
+   ],
+   [
+    "hong ha",
+    3
+   ],
+   [
+    "udemy",
+    3
+   ],
+   [
+    "coursera",
+    3
+   ],
+   [
+    "duolingo",
+    3
+   ],
+   [
+    "elsa speak",
+    3
+   ],
+   [
+    "prep",
+    3
+   ],
+   [
+    "ielts fighter",
+    3
+   ],
+   [
+    "anh ngu",
+    3
+   ],
+   [
+    "trung tam tieng anh",
+    3
+   ],
+   [
+    "tiem photo",
+    3
+   ]
+  ],
+  "shop": [
+   [
+    "winmart",
+    3
+   ],
+   [
+    "vinmart",
+    3
+   ],
+   [
+    "co op mart",
+    3
+   ],
+   [
+    "coopmart",
+    3
+   ],
+   [
+    "coop mart",
+    3
+   ],
+   [
+    "coopfood",
+    3
+   ],
+   [
+    "bach hoa xanh",
+    3
+   ],
+   [
+    "circle k",
+    3
+   ],
+   [
+    "ministop",
+    3
+   ],
+   [
+    "family mart",
+    3
+   ],
+   [
+    "familymart",
+    3
+   ],
+   [
+    "gs25",
+    3
+   ],
+   [
+    "7 eleven",
+    3
+   ],
+   [
+    "lotte mart",
+    3
+   ],
+   [
+    "aeon",
+    3
+   ],
+   [
+    "big c",
+    3
+   ],
+   [
+    "mega market",
+    3
+   ],
+   [
+    "emart",
+    3
+   ],
+   [
+    "guardian",
+    3
+   ],
+   [
+    "watsons",
+    3
+   ],
+   [
+    "uniqlo",
+    3
+   ],
+   [
+    "thegioididong",
+    3
+   ],
+   [
+    "the gioi di dong",
+    3
+   ],
+   [
+    "dien may xanh",
+    3
+   ],
+   [
+    "fpt shop",
+    3
+   ],
+   [
+    "lazada",
+    2
+   ],
+   [
+    "tiki",
+    2
+   ],
+   [
+    "shopee",
+    2
+   ],
+   [
+    "sieu thi",
+    2
+   ],
+   [
+    "tap hoa",
+    2
+   ],
+   [
+    "cua hang",
+    1
+   ],
+   [
+    "mart",
+    2
+   ],
+   [
+    "store",
+    1
+   ],
+   [
+    "shop",
+    1
+   ],
+   [
+    "quan ao",
+    2
+   ],
+   [
+    "giay",
+    1
+   ],
+   [
+    "my pham",
+    2
+   ],
+   [
+    "ao",
+    1
+   ],
+   [
+    "ao thun",
+    2
+   ],
+   [
+    "ao so mi",
+    2
+   ],
+   [
+    "ao khoac",
+    2
+   ],
+   [
+    "ao hoodie",
+    2
+   ],
+   [
+    "quan",
+    1
+   ],
+   [
+    "quan jean",
+    2
+   ],
+   [
+    "quan short",
+    2
+   ],
+   [
+    "vay",
+    1
+   ],
+   [
+    "dam",
+    1
+   ],
+   [
+    "giay the thao",
+    2
+   ],
+   [
+    "dep",
+    1
+   ],
+   [
+    "dep le",
+    2
+   ],
+   [
+    "tui xach",
+    2
+   ],
+   [
+    "vi",
+    1
+   ],
+   [
+    "balo",
+    1
+   ],
+   [
+    "mu",
+    1
+   ],
+   [
+    "non",
+    1
+   ],
+   [
+    "kinh mat",
+    2
+   ],
+   [
+    "dong ho",
+    2
+   ],
+   [
+    "tai nghe",
+    2
+   ],
+   [
+    "sac dien thoai",
+    2
+   ],
+   [
+    "cap sac",
+    2
+   ],
+   [
+    "op lung",
+    2
+   ],
+   [
+    "cuong luc",
+    2
+   ],
+   [
+    "chuot may tinh",
+    2
+   ],
+   [
+    "ban phim",
+    2
+   ],
+   [
+    "dien thoai",
+    2
+   ],
+   [
+    "laptop",
+    1
+   ],
+   [
+    "loa bluetooth",
+    2
+   ],
+   [
+    "son",
+    1
+   ],
+   [
+    "sua rua mat",
+    2
+   ],
+   [
+    "kem chong nang",
+    2
+   ],
+   [
+    "toner",
+    1
+   ],
+   [
+    "serum",
+    1
+   ],
+   [
+    "dau goi",
+    2
+   ],
+   [
+    "sua tam",
+    2
+   ],
+   [
+    "kem danh rang",
+    2
+   ],
+   [
+    "ban chai",
+    2
+   ],
+   [
+    "giay ve sinh",
+    2
+   ],
+   [
+    "khan giay",
+    2
+   ],
+   [
+    "nuoc giat",
+    2
+   ],
+   [
+    "nuoc rua chen",
+    2
+   ],
+   [
+    "noi",
+    1
+   ],
+   [
+    "chan",
+    1
+   ],
+   [
+    "goi",
+    1
+   ],
+   [
+    "ga giuong",
+    2
+   ],
+   [
+    "moc quan ao",
+    2
+   ],
+   [
+    "do gia dung",
+    2
+   ],
+   [
+    "do dung ca nhan",
+    2
+   ],
+   [
+    "qua vat sieu thi",
+    2
+   ],
+   [
+    "do online",
+    2
+   ],
+   [
+    "phu kien",
+    2
+   ],
+   [
+    "trang suc",
+    2
+   ],
+   [
+    "nhan",
+    1
+   ],
+   [
+    "vong tay",
+    2
+   ],
+   [
+    "tat",
+    1
+   ],
+   [
+    "do lot",
+    2
+   ],
+   [
+    "quat mini",
+    2
+   ],
+   [
+    "den ban",
+    2
+   ],
+   [
+    "binh nuoc",
+    2
+   ],
+   [
+    "o du",
+    2
+   ],
+   [
+    "co op food",
+    3
+   ],
+   [
+    "tiktok shop",
+    3
+   ],
+   [
+    "zara",
+    3
+   ],
+   [
+    "h m",
+    3
+   ],
+   [
+    "cellphones",
+    3
+   ],
+   [
+    "hasaki",
+    3
+   ],
+   [
+    "cocoon",
+    3
+   ],
+   [
+    "miniso",
+    3
+   ],
+   [
+    "daiso",
+    3
+   ]
+  ],
+  "health": [
+   [
+    "pharmacity",
+    3
+   ],
+   [
+    "long chau",
+    3
+   ],
+   [
+    "nha thuoc",
+    3
+   ],
+   [
+    "benh vien",
+    3
+   ],
+   [
+    "phong kham",
+    3
+   ],
+   [
+    "thuoc",
+    1
+   ],
+   [
+    "thuoc cam",
+    2
+   ],
+   [
+    "thuoc ho",
+    2
+   ],
+   [
+    "thuoc dau dau",
+    2
+   ],
+   [
+    "thuoc ha sot",
+    2
+   ],
+   [
+    "thuoc da day",
+    2
+   ],
+   [
+    "thuoc dau bung",
+    2
+   ],
+   [
+    "thuoc tieu chay",
+    2
+   ],
+   [
+    "thuoc di ung",
+    2
+   ],
+   [
+    "thuoc khang sinh",
+    2
+   ],
+   [
+    "khang sinh",
+    2
+   ],
+   [
+    "thuoc nho mat",
+    2
+   ],
+   [
+    "thuoc boi",
+    2
+   ],
+   [
+    "thuoc giam dau",
+    2
+   ],
+   [
+    "paracetamol",
+    1
+   ],
+   [
+    "panadol",
+    1
+   ],
+   [
+    "efferalgan",
+    1
+   ],
+   [
+    "berberin",
+    1
+   ],
+   [
+    "vitamin",
+    1
+   ],
+   [
+    "vitamin c",
+    2
+   ],
+   [
+    "thuc pham chuc nang",
+    2
+   ],
+   [
+    "khau trang",
+    2
+   ],
+   [
+    "bang ca nhan",
+    2
+   ],
+   [
+    "bong bang",
+    2
+   ],
+   [
+    "nuoc muoi sinh ly",
+    2
+   ],
+   [
+    "dau gio",
+    2
+   ],
+   [
+    "cao dan",
+    2
+   ],
+   [
+    "salonpas",
+    1
+   ],
+   [
+    "nhiet ke",
+    2
+   ],
+   [
+    "que thu",
+    2
+   ],
+   [
+    "kham benh",
+    2
+   ],
+   [
+    "kham rang",
+    2
+   ],
+   [
+    "nha khoa",
+    2
+   ],
+   [
+    "lay cao rang",
+    2
+   ],
+   [
+    "tram rang",
+    2
+   ],
+   [
+    "nho rang",
+    2
+   ],
+   [
+    "nieng rang",
+    2
+   ],
+   [
+    "kham mat",
+    2
+   ],
+   [
+    "do mat",
+    2
+   ],
+   [
+    "kham da lieu",
+    2
+   ],
+   [
+    "xet nghiem",
+    2
+   ],
+   [
+    "xet nghiem mau",
+    2
+   ],
+   [
+    "chup x quang",
+    2
+   ],
+   [
+    "sieu am",
+    2
+   ],
+   [
+    "tiem phong",
+    2
+   ],
+   [
+    "tiem vac xin",
+    2
+   ],
+   [
+    "vac xin",
+    2
+   ],
+   [
+    "bao hiem y te",
+    2
+   ],
+   [
+    "vien phi",
+    2
+   ],
+   [
+    "tien thuoc",
+    2
+   ],
+   [
+    "vat ly tri lieu",
+    2
+   ],
+   [
+    "cham cuu",
+    2
+   ],
+   [
+    "kham tong quat",
+    2
+   ],
+   [
+    "kham suc khoe",
+    2
+   ],
+   [
+    "don thuoc",
+    2
+   ],
+   [
+    "men vi sinh",
+    2
+   ],
+   [
+    "siro ho",
+    2
+   ],
+   [
+    "thuoc say xe",
+    2
+   ],
+   [
+    "hieu thuoc",
+    3
+   ],
+   [
+    "an khang",
+    3
+   ],
+   [
+    "medicare",
+    3
+   ],
+   [
+    "benh vien bach mai",
+    3
+   ],
+   [
+    "benh vien cho ray",
+    3
+   ],
+   [
+    "vinmec",
+    3
+   ],
+   [
+    "hoan my",
+    3
+   ],
+   [
+    "medlatec",
+    3
+   ],
+   [
+    "nha khoa kim",
+    3
+   ],
+   [
+    "phong kham da khoa",
+    3
+   ]
+  ],
+  "fun": [
+   [
+    "xem phim",
+    2
+   ],
+   [
+    "ve xem phim",
+    2
+   ],
+   [
+    "ve phim",
+    2
+   ],
+   [
+    "bap nuoc rap phim",
+    2
+   ],
+   [
+    "karaoke",
+    1
+   ],
+   [
+    "hat karaoke",
+    2
+   ],
+   [
+    "game",
+    1
+   ],
+   [
+    "nap game",
+    2
+   ],
+   [
+    "mua game",
+    2
+   ],
+   [
+    "skin game",
+    2
+   ],
+   [
+    "the game",
+    2
+   ],
+   [
+    "netflix",
+    1
+   ],
+   [
+    "spotify",
+    1
+   ],
+   [
+    "youtube premium",
+    2
+   ],
+   [
+    "du lich",
+    2
+   ],
+   [
+    "khach san",
+    2
+   ],
+   [
+    "homestay",
+    1
+   ],
+   [
+    "resort",
+    1
+   ],
+   [
+    "ve tham quan",
+    2
+   ],
+   [
+    "cong vien",
+    2
+   ],
+   [
+    "khu vui choi",
+    2
+   ],
+   [
+    "bowling",
+    1
+   ],
+   [
+    "bi a",
+    2
+   ],
+   [
+    "billiards",
+    1
+   ],
+   [
+    "da bong",
+    2
+   ],
+   [
+    "thue san bong",
+    2
+   ],
+   [
+    "san cau long",
+    2
+   ],
+   [
+    "cau long",
+    2
+   ],
+   [
+    "pickleball",
+    1
+   ],
+   [
+    "tennis",
+    1
+   ],
+   [
+    "gym",
+    1
+   ],
+   [
+    "tap gym",
+    2
+   ],
+   [
+    "phi gym",
+    2
+   ],
+   [
+    "yoga",
+    1
+   ],
+   [
+    "boi",
+    1
+   ],
+   [
+    "ve boi",
+    2
+   ],
+   [
+    "ho boi",
+    2
+   ],
+   [
+    "concert",
+    1
+   ],
+   [
+    "ve ca nhac",
+    2
+   ],
+   [
+    "ve concert",
+    2
+   ],
+   [
+    "bar",
+    1
+   ],
+   [
+    "pub",
+    1
+   ],
+   [
+    "truyen tranh",
+    2
+   ],
+   [
+    "sach truyen",
+    2
+   ],
+   [
+    "board game",
+    2
+   ],
+   [
+    "escape room",
+    2
+   ],
+   [
+    "so thu",
+    2
+   ],
+   [
+    "bao tang",
+    2
+   ],
+   [
+    "di choi",
+    2
+   ],
+   [
+    "picnic",
+    1
+   ],
+   [
+    "cam trai",
+    2
+   ],
+   [
+    "tro choi",
+    2
+   ],
+   [
+    "lego",
+    1
+   ],
+   [
+    "mo hinh",
+    2
+   ],
+   [
+    "gacha",
+    1
+   ],
+   [
+    "ve su kien",
+    2
+   ],
+   [
+    "phong net",
+    2
+   ],
+   [
+    "choi net",
+    2
+   ],
+   [
+    "di phuot",
+    2
+   ],
+   [
+    "tour",
+    1
+   ],
+   [
+    "cgv",
+    3
+   ],
+   [
+    "lotte cinema",
+    3
+   ],
+   [
+    "galaxy cinema",
+    3
+   ],
+   [
+    "bhd",
+    3
+   ],
+   [
+    "beta cinemas",
+    3
+   ],
+   [
+    "steam",
+    3
+   ],
+   [
+    "garena",
+    3
+   ],
+   [
+    "lien quan",
+    3
+   ],
+   [
+    "playstation",
+    3
+   ],
+   [
+    "nintendo",
+    3
+   ],
+   [
+    "vinwonders",
+    3
+   ],
+   [
+    "sun world",
+    3
+   ],
+   [
+    "dam sen",
+    3
+   ],
+   [
+    "suoi tien",
+    3
+   ],
+   [
+    "agoda",
+    3
+   ],
+   [
+    "traveloka",
+    3
+   ],
+   [
+    "booking",
+    3
+   ],
+   [
+    "airbnb",
+    3
+   ],
+   [
+    "california fitness",
+    3
+   ],
+   [
+    "elite fitness",
+    3
+   ],
+   [
+    "icarus",
+    3
+   ]
+  ],
+  "other": [
+   [
+    "viettel",
+    2
+   ],
+   [
+    "vinaphone",
+    2
+   ],
+   [
+    "mobifone",
+    2
+   ],
+   [
+    "internet",
+    2
+   ],
+   [
+    "tien nha",
+    2
+   ],
+   [
+    "tien dien",
+    2
+   ],
+   [
+    "tien nuoc",
+    2
+   ],
+   [
+    "tien tro",
+    2
+   ],
+   [
+    "tien phong",
+    2
+   ],
+   [
+    "thue nha",
+    2
+   ],
+   [
+    "thue phong",
+    2
+   ],
+   [
+    "hoa don dien",
+    2
+   ],
+   [
+    "hoa don nuoc",
+    2
+   ],
+   [
+    "dien nuoc",
+    2
+   ],
+   [
+    "wifi",
+    1
+   ],
+   [
+    "cuoc internet",
+    2
+   ],
+   [
+    "tien mang",
+    2
+   ],
+   [
+    "tien wifi",
+    2
+   ],
+   [
+    "nap dien thoai",
+    2
+   ],
+   [
+    "nap tien dien thoai",
+    2
+   ],
+   [
+    "nap the",
+    2
+   ],
+   [
+    "the cao",
+    2
+   ],
+   [
+    "goi data",
+    2
+   ],
+   [
+    "goi 4g",
+    2
+   ],
+   [
+    "4g",
+    1
+   ],
+   [
+    "5g",
+    1
+   ],
+   [
+    "cuoc dien thoai",
+    2
+   ],
+   [
+    "cuoc di dong",
+    2
+   ],
+   [
+    "sim",
+    1
+   ],
+   [
+    "tien rac",
+    2
+   ],
+   [
+    "phi ve sinh",
+    2
+   ],
+   [
+    "phi dich vu chung cu",
+    2
+   ],
+   [
+    "phi quan ly",
+    2
+   ],
+   [
+    "tien gas",
+    2
+   ],
+   [
+    "binh gas",
+    2
+   ],
+   [
+    "doi gas",
+    2
+   ],
+   [
+    "truyen hinh cap",
+    2
+   ],
+   [
+    "goi cuoc",
+    2
+   ],
+   [
+    "icloud",
+    1
+   ],
+   [
+    "google one",
+    2
+   ],
+   [
+    "phi gui xe chung cu",
+    2
+   ],
+   [
+    "tien dien thang",
+    2
+   ],
+   [
+    "tien nuoc thang",
+    2
+   ],
+   [
+    "tien phong thang",
+    2
+   ],
+   [
+    "dat coc phong",
+    2
+   ],
+   [
+    "evn",
+    3
+   ],
+   [
+    "dien luc",
+    3
+   ],
+   [
+    "cap nuoc",
+    3
+   ],
+   [
+    "sawaco",
+    3
+   ],
+   [
+    "vietnamobile",
+    3
+   ],
+   [
+    "fpt telecom",
+    3
+   ],
+   [
+    "vnpt",
+    3
+   ],
+   [
+    "vtvcab",
+    3
+   ],
+   [
+    "momo nap",
+    3
+   ],
+   [
+    "payoo",
+    3
+   ],
+   [
+    "qua sinh nhat",
+    2
+   ],
+   [
+    "qua tang",
+    2
+   ],
+   [
+    "mua qua",
+    2
+   ],
+   [
+    "mung cuoi",
+    2
+   ],
+   [
+    "dam cuoi",
+    2
+   ],
+   [
+    "tien mung",
+    2
+   ],
+   [
+    "dam hieu",
+    2
+   ],
+   [
+    "phung dieu",
+    2
+   ],
+   [
+    "tu thien",
+    2
+   ],
+   [
+    "ung ho",
+    2
+   ],
+   [
+    "quyen gop",
+    2
+   ],
+   [
+    "chuyen tien cho me",
+    2
+   ],
+   [
+    "gui tien ve nha",
+    2
+   ],
+   [
+    "gui tien bo me",
+    2
+   ],
+   [
+    "tra no",
+    2
+   ],
+   [
+    "cho ban muon",
+    2
+   ],
+   [
+    "tra tien ban",
+    2
+   ],
+   [
+    "li xi",
+    2
+   ],
+   [
+    "dong quy lop",
+    2
+   ],
+   [
+    "quy lop",
+    2
+   ],
+   [
+    "doan phi",
+    2
+   ],
+   [
+    "quy doan",
+    2
+   ],
+   [
+    "cat toc",
+    2
+   ],
+   [
+    "goi dau",
+    2
+   ],
+   [
+    "nhuom toc",
+    2
+   ],
+   [
+    "giat ui",
+    2
+   ],
+   [
+    "giat say",
+    2
+   ],
+   [
+    "sua dien thoai",
+    2
+   ],
+   [
+    "thay man hinh",
+    2
+   ],
+   [
+    "phi chuyen khoan",
+    2
+   ],
+   [
+    "phi ngan hang",
+    2
+   ],
+   [
+    "phi thuong nien",
+    2
+   ],
+   [
+    "tien phat",
+    2
+   ],
+   [
+    "nop phat",
+    2
+   ],
+   [
+    "cong chung",
+    2
+   ],
+   [
+    "lam giay to",
+    2
+   ],
+   [
+    "le phi",
+    2
+   ],
+   [
+    "tien tip",
+    2
+   ],
+   [
+    "thuc an cho meo",
+    2
+   ],
+   [
+    "thuc an cho cho",
+    2
+   ],
+   [
+    "cat ve sinh meo",
+    2
+   ],
+   [
+    "thu y",
+    2
+   ],
+   [
+    "chi tieu khac",
+    2
+   ],
+   [
+    "linh tinh",
+    2
+   ],
+   [
+    "tien lat vat",
+    2
+   ],
+   [
+    "gop tien",
+    2
+   ],
+   [
+    "chia tien",
+    2
+   ],
+   [
+    "di chua",
+    2
+   ],
+   [
+    "cung",
+    1
+   ],
+   [
+    "hoa",
+    1
+   ],
+   [
+    "mua hoa",
+    2
+   ],
+   [
+    "ve so",
+    2
+   ],
+   [
+    "danh de",
+    2
+   ],
+   [
+    "momo",
+    3
+   ],
+   [
+    "zalopay",
+    3
+   ],
+   [
+    "chuyen khoan",
+    3
+   ],
+   [
+    "ngan hang",
+    3
+   ],
+   [
+    "tiem toc",
+    3
+   ],
+   [
+    "tiem giat",
+    3
+   ]
+  ]
+ }
+}

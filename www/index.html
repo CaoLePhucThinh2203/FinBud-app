@@ -82,9 +82,10 @@ label.s{display:flex;justify-content:space-between;align-items:center;gap:10px;p
 </div>
 <script src="receipt-engine.js"></script>
 <script>
-const K="finbud.v1",TK="finbud.theme",CATS={food:["#D85A30","Ăn uống"],move:["#378ADD","Di chuyển"],study:["#7F77DD","Học tập"],shop:["#D4537E","Mua sắm"],other:["#888780","Khác"]};
+const K="finbud.v1",TK="finbud.theme",CATS={food:["#D85A30","Ăn uống"],move:["#378ADD","Di chuyển"],study:["#7F77DD","Học tập"],shop:["#D4537E","Mua sắm"],health:["#E24B4A","Sức khỏe"],fun:["#639922","Giải trí"],other:["#888780","Khác"]};
 let S={set:null,tx:[],inc:[],tab:"home"},dr=null,lock=false,isListening=false;
 try{const j=JSON.parse(localStorage.getItem(K)||"null");if(j)S={...S,set:j.set,tx:j.tx||[],inc:j.inc||[]}}catch(e){}
+S.tx.forEach(t=>{if(!CATS[t.c])t.c="other"});  // danh mục đã bỏ (vd. Hóa đơn) -> Khác
 const save=()=>{try{localStorage.setItem(K,JSON.stringify({set:S.set,tx:S.tx,inc:S.inc}))}catch(e){}};
 const $=s=>document.querySelector(s),pad=n=>String(n).padStart(2,"0"),sum=a=>a.reduce((x,t)=>x+t.a,0);
 const ds=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
@@ -102,7 +103,12 @@ function calc(){
  return{n,left,m,spent,tdy,limit,rem,inc,extra,ratio:limit>0?tdy/limit:(tdy>0?2:1),tomorrow:left>1?Math.max((pool-spent)/(left-1),0):0};
 }
 /* Phân loại danh mục & bóc tách số tiền (hỗ trợ: 15k, hai chục, 5 xị, nửa triệu, ba lăm nghìn, 45.000 VND) */
-function classify(s){s=s.toLowerCase();
+/* Phân loại: dùng model + từ điển trong receipt-engine.js (train bằng tools/category/train.py);
+   nếu chưa nạp xong thì tạm dùng luật đơn giản bên dưới */
+function classify(s){
+ try{const c=window.ReceiptEngine&&ReceiptEngine._t.categorize(s);if(CATS[c])return c}catch(e){}
+ return classifyRx(s)}
+function classifyRx(s){s=s.toLowerCase();
  if(/ăn|bún|cơm|phở|trà sữa|cà phê|cafe|bánh|nước|xôi|uống|quán/.test(s))return"food";
  if(/xe|xăng|grab|bus|buýt|taxi|be /.test(s))return"move";
  if(/sách|photo|học|in ấn|văn phòng/.test(s))return"study";
@@ -163,8 +169,8 @@ function simNoti(){
  let nb=$("#noti");if(!nb){nb=document.createElement("div");nb.id="noti";nb.className="noti";document.querySelector(".phone").appendChild(nb)}
  const t=new Date();nb.innerHTML=`<div class="nb">${esc(bank[0])}</div><div><b>${esc(bank)}</b> <span class="mut">· ${pad(t.getHours())}:${pad(t.getMinutes())}</span><div>${esc(line)}</div><div class="mut">ND: ${esc(note)}</div></div>`;
  nb.classList.add("show");clearTimeout(nb._t);nb._t=setTimeout(()=>nb.classList.remove("show"),3500);
- setTimeout(()=>{const c=window.ReceiptEngine&&ReceiptEngine._t?ReceiptEngine._t.categorize(note):classify(note);
-  S.tx.unshift({id:Date.now(),a,c:CATS[c]?c:classify(note),n:note,s:"Thông báo",d:ds(t)});save();render();toast("Đã tự ghi "+fmt(a)+" từ thông báo "+bank)},1200);
+ setTimeout(()=>{
+  S.tx.unshift({id:Date.now(),a,c:classify(note),n:note,s:"Thông báo",d:ds(t)});save();render();toast("Đã tự ghi "+fmt(a)+" từ thông báo "+bank)},1200);
 }
 function del(id){if(confirm("Xóa giao dịch này?")){S.tx=S.tx.filter(t=>t.id!==id);save();render()}}
 function open(h,lk){lock=!!lk;$("#panel").innerHTML=h;$("#sheet").classList.add("show")}
