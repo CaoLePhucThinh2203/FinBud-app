@@ -61,13 +61,6 @@
 
 
 
-    <!-- Cho phép tìm dịch vụ nhận giọng nói của hệ thống (Android 11+) -->
-    <queries>
-        <intent>
-            <action android:name="android.speech.RecognitionService" />
-        </intent>
-    </queries>
-
     <!-- Permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Chụp hóa đơn (OCR) -->

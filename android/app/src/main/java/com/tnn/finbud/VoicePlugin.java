@@ -15,10 +15,10 @@ import com.getcapacitor.annotation.Permission;
  *
  * JS:
  *   FinBudVoice.requestPermissions()           -> { audio: "granted" | ... }
- *   FinBudVoice.start({ deviceOnly })          deviceOnly = cài đặt "Chỉ trên máy"
+ *   FinBudVoice.start({ engine })              engine = "zip" (mô hình mới, Zipformer) | "vosk"
  *   FinBudVoice.stop()                         dừng nghe, vẫn trả kết quả phần đã nói
  *   FinBudVoice.cancel()                       huỷ, không trả kết quả
- *   FinBudVoice.prepare({ deviceOnly })        nạp trước (Vosk, kiểm tra gói tiếng Việt)
+ *   FinBudVoice.prepare({ engine })            nạp trước mô hình sẽ dùng
  *   FinBudVoice.diagnostics() / clearDiagnostics()
  * Sự kiện: "state" {state}, "partial" {text}, "result" {text, engine}, "info" {message}, "error" {message, code}
  *   text của "result" đã đổi số đọc bằng chữ thành chữ số, ví dụ "ăn bún bò 35.000đ".
@@ -71,9 +71,9 @@ public class VoicePlugin extends Plugin {
 
     @PluginMethod
     public void start(PluginCall call) {
-        boolean deviceOnly = Boolean.TRUE.equals(call.getBoolean("deviceOnly", false));
+        String which = call.getString("engine", VoiceEngine.ZIP);
         getActivity().runOnUiThread(() -> {
-            engine.start(deviceOnly);
+            engine.start(which);
             call.resolve();
         });
     }
@@ -96,9 +96,9 @@ public class VoicePlugin extends Plugin {
 
     @PluginMethod
     public void prepare(PluginCall call) {
-        boolean deviceOnly = Boolean.TRUE.equals(call.getBoolean("deviceOnly", false));
+        String which = call.getString("engine", VoiceEngine.ZIP);
         getActivity().runOnUiThread(() -> {
-            VoiceEngine.prepare(getContext(), deviceOnly);
+            VoiceEngine.prepare(getContext(), which);
             call.resolve();
         });
     }

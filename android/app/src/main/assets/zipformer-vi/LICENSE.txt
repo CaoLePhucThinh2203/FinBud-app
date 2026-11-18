@@ -1,0 +1,7 @@
+Mô hình nhận giọng tiếng Việt Zipformer 30M (RNNT, ~6000 giờ dữ liệu)
+Tác giả: hynt — https://huggingface.co/hynt/Zipformer-30M-RNNT-6000h
+Bản int8 cho sherpa-onnx: sherpa-onnx-zipformer-vi-30M-int8-2026-02-09
+  https://github.com/k2-fsa/sherpa-onnx/releases/tag/asr-models
+Giấy phép: Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 (CC BY-NC-ND 4.0)
+  https://creativecommons.org/licenses/by-nc-nd/4.0/
+Chỉ dùng phi thương mại, phân phối nguyên vẹn, không chỉnh sửa.
