@@ -39,27 +39,11 @@ final class SpeechHelper {
     };
     static final String KEY_LAST_ERROR = "last_error";
 
-    /** Dịch vụ nhận giọng sẽ dùng; null = để Android tự chọn dịch vụ mặc định. */
-    static ComponentName pickService(Context ctx) {
-        List<ResolveInfo> list = ctx.getPackageManager().queryIntentServices(new Intent(RecognitionService.SERVICE_INTERFACE), 0);
-        for (String pkg : PREFERRED) {
-            for (ResolveInfo r : list) {
-                ServiceInfo s = r.serviceInfo;
-                if (s != null && pkg.equals(s.packageName)) return new ComponentName(s.packageName, s.name);
-            }
-        }
-        return null;
-    }
-
-    static boolean available(Context ctx) {
-        return SpeechRecognizer.isRecognitionAvailable(ctx) || pickService(ctx) != null;
-    }
-
-    static boolean onDeviceAvailable(Context ctx) {
-        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && SpeechRecognizer.isOnDeviceRecognitionAvailable(ctx);
-    }
-
-    /** Danh sách dịch vụ trực tuyến để thử lần lượt: các dịch vụ Google có trên máy, cuối cùng là dịch vụ mặc định (null). */
+    /**
+     * Danh sách dịch vụ nhận giọng trực tuyến được phép dùng, theo thứ tự thử: dịch vụ của Google trước, rồi dịch vụ
+     * do hệ điều hành / hãng máy cài sẵn. KHÔNG dùng dịch vụ của ứng dụng bên thứ ba (ví dụ ứng dụng Claude cũng
+     * khai báo dịch vụ nhận giọng nhưng chỉ cho chính nó dùng -> trả mã 5 cho app khác). Rỗng = đi thẳng Vosk.
+     */
     static List<ComponentName> candidates(Context ctx) {
         List<ComponentName> out = new java.util.ArrayList<>();
         List<ResolveInfo> list = ctx.getPackageManager().queryIntentServices(new Intent(RecognitionService.SERVICE_INTERFACE), 0);
@@ -69,13 +53,34 @@ final class SpeechHelper {
                 if (s != null && pkg.equals(s.packageName)) out.add(new ComponentName(s.packageName, s.name));
             }
         }
-        out.add(null);
+        for (ResolveInfo r : list) {
+            ServiceInfo s = r.serviceInfo;
+            if (s == null || s.applicationInfo == null) continue;
+            boolean system = (s.applicationInfo.flags & (android.content.pm.ApplicationInfo.FLAG_SYSTEM
+                | android.content.pm.ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) != 0;
+            ComponentName c = new ComponentName(s.packageName, s.name);
+            if (system && !out.contains(c)) out.add(c);
+        }
         return out;
     }
 
-    /** Tạo bộ nhận giọng cho một dịch vụ (null = dịch vụ mặc định của máy). Gọi trên luồng giao diện. */
+    /** Dịch vụ trực tuyến dùng đầu tiên; null = không có dịch vụ dùng được. */
+    static ComponentName pickService(Context ctx) {
+        List<ComponentName> c = candidates(ctx);
+        return c.isEmpty() ? null : c.get(0);
+    }
+
+    static boolean available(Context ctx) {
+        return !candidates(ctx).isEmpty();
+    }
+
+    static boolean onDeviceAvailable(Context ctx) {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && SpeechRecognizer.isOnDeviceRecognitionAvailable(ctx);
+    }
+
+    /** Tạo bộ nhận giọng cho một dịch vụ cụ thể. Gọi trên luồng giao diện. */
     static SpeechRecognizer create(Context ctx, ComponentName service) {
-        return service != null ? SpeechRecognizer.createSpeechRecognizer(ctx, service) : SpeechRecognizer.createSpeechRecognizer(ctx);
+        return SpeechRecognizer.createSpeechRecognizer(ctx, service);
     }
 
     /** offline = true chỉ dùng cho bộ nhận on-device; dịch vụ trực tuyến không gửi cờ này (tránh lỗi "mất mạng" giả). */
@@ -186,9 +191,7 @@ final class SpeechHelper {
 
     static String serviceName(Context ctx) {
         ComponentName c = pickService(ctx);
-        if (c != null) return c.getPackageName();
-        String def = Settings.Secure.getString(ctx.getContentResolver(), "voice_recognition_service");
-        return def != null && !def.isEmpty() ? def + " (mặc định)" : "mặc định của máy";
+        return c != null ? c.getPackageName() : "không có dịch vụ dùng được, dùng Vosk";
     }
 
     /** Thông tin để hiện trong Cài đặt → Chẩn đoán. */
