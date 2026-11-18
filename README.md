@@ -31,7 +31,6 @@ Sản phẩm được nghiên cứu và phát triển theo quy trình Design Thi
 
   * Chi **vượt mức** hôm nay → phần thâm hụt tự động chia đều vào các ngày còn lại.
   * Chi **tiết kiệm** → khoản dư dồn sang các ngày sau.
-* Khối hạn mức còn hiện hạn mức dự kiến của ngày mai.
 
 ### 2. Thêm tiền có thể chi
 * Thẻ **"Tiền thêm tháng này"** ngay trên trang chủ, bấm **Thêm tiền** để ghi các khoản như bố mẹ gửi, làm thêm, được thưởng.
@@ -46,10 +45,10 @@ Sản phẩm được nghiên cứu và phát triển theo quy trình Design Thi
 
   | Ô cài đặt | Mô hình | Ghi chú |
   |---|---|---|
-  | **Mô hình mới** *(mặc định)* | Zipformer tiếng Việt 30M (~6000 giờ dữ liệu), chạy bằng [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) | Chính xác hơn Vosk nhiều. Nạp không được thì tự dùng Vosk |
+  | **Zipformer 30M** *(mặc định)* | Zipformer tiếng Việt 30M (~6000 giờ dữ liệu), chạy bằng [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) | Chính xác hơn Vosk nhiều. Nạp không được thì tự dùng Vosk |
   | **Vosk** | Vosk tiếng Việt (mô hình cũ) | Nhẹ hơn, kém chính xác hơn |
 
-  * Ghi âm do app tự làm và tự nhận ra lúc ngừng nói (~0,9 giây im lặng). Mô hình mới hiện chữ tạm khoảng mỗi 1,2 giây
+  * Ghi âm do app tự làm và tự nhận ra lúc ngừng nói (~0,9 giây im lặng). Zipformer hiện chữ tạm khoảng mỗi 1,2 giây
     rồi nhận dạng lại cả câu khi nói xong.
   * Mỗi mô hình nạp một lần và dùng chung cho app và pop-up; nạp sẵn ở nền vài giây sau khi mở app.
   * Mọi lỗi micro được bắt và báo thành thông báo, không làm văng app.
@@ -120,7 +119,7 @@ flowchart LR
 * Dữ liệu lưu cục bộ trên thiết bị (Local Storage).
 
 ### 7. Widget màn hình chính (Android)
-* Thẻ 4×2 giống khối hạn mức ở trang chủ: số tiền hôm nay có thể chi, thanh tiến độ, đã chi, ngày mai dự kiến; đổi màu xanh / vàng / đỏ.
+* Thẻ 4×2 trình bày giống khối "Hôm nay bạn có thể chi" ở trang chủ (cùng cỡ chữ, khoảng cách): số tiền, thanh tiến độ, đã chi; đổi màu xanh / vàng / đỏ. Số tiền tự co khi widget thấp.
 * **Nói** mở pop-up nhập nhanh ở phần dưới màn hình và nghe ngay; **Gõ** mở pop-up với bàn phím. Không phải mở app:
   gõ hoặc nói, tự tách số tiền và danh mục
   (`QuickParser.java`, cho kết quả giống hệt bản JS, kiểm tra bằng `tools/widget/check_parser.sh`), bấm **Lưu** là widget cập nhật ngay.
@@ -166,7 +165,7 @@ FinBud-app/
 ├─ tools/receipt-rules/        # Kiểm tra receipt-rules.js khớp luật Python của QuetHoaDon
 ├─ android/app/src/main/
 │  ├─ assets/model-vn/         # Model Vosk tiếng Việt (+ file uuid)
-│  ├─ assets/zipformer-vi/     # Mô hình mới: Zipformer tiếng Việt 30M int8 (+ LICENSE.txt)
+│  ├─ assets/zipformer-vi/     # Zipformer tiếng Việt 30M int8 (+ LICENSE.txt)
 │  └─ java/com/tnn/finbud/
 │     ├─ MainActivity.java     # Đăng ký plugin
 │     ├─ VoiceEngine.java      # Hệ thống nhận giọng chung (Zipformer / Vosk) cho app, pop-up, widget
@@ -221,9 +220,8 @@ Cần chạy qua server để app tải được `receipt_model.json`; mở th�
 | "Model chưa sẵn sàng" | Thư mục model phải tên đúng `assets` (không phải `assests`), nằm ở `android/app/src/main/assets/model-vn/` |
 | Lỗi nạp model, báo thiếu `uuid` | Cần file văn bản `uuid` (một dòng bất kỳ) trong `assets/model-vn/`; đổi nội dung khi thay model |
 | Không bật được micro | Chưa cấp quyền micro; app xin quyền ở lần bấm **Nói** đầu tiên |
-| Báo "Không nạp được mô hình mới, chuyển sang Vosk" | Xem Cài đặt → **Chẩn đoán**, dòng "Mô hình mới" và "Lỗi gần nhất". Kiểm tra `assets/zipformer-vi/` có đủ 4 file `.onnx`/`tokens.txt` |
-| Nói bị lỗi, không rõ vì sao | Vào Cài đặt → **Chẩn đoán**: xem mô hình đang dùng, trạng thái từng mô hình và lỗi gần nhất (kể cả lỗi của pop-up widget). Bấm *Sao chép để gửi hỗ trợ* |
-| Nhận giọng kém, hay nghe sai số | Kiểm tra đang chọn *Mô hình mới*. Nói rõ đơn vị tiền ("nghìn", "k"); app tự dừng khi im lặng ~0,9 giây nên nói liền một câu |
+| Báo "Không nạp được Zipformer 30M, chuyển sang Vosk" | Kiểm tra `assets/zipformer-vi/` có đủ 3 file `.onnx` và `tokens.txt`; xem log bằng `adb logcat` |
+| Nhận giọng kém, hay nghe sai số | Kiểm tra đang chọn *Zipformer 30M*. Nói rõ đơn vị tiền ("nghìn", "k"); app tự dừng khi im lặng ~0,9 giây nên nói liền một câu |
 | Không thấy lỗi gì | Mở `chrome://inspect` xem console WebView, hoặc `adb logcat` lọc `Capacitor`, `vosk` |
 
 ---

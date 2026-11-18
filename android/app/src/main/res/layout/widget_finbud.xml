@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Widget màn hình chính: bản sao khối "Hôm nay bạn có thể chi" ở trang chủ app.
+<!-- Widget màn hình chính: trình bày giống khối "Hôm nay bạn có thể chi" ở trang chủ app
+     (www/index.html: .widget, .wl, .big, .bar, .ws, .wb): lề 18, nhãn 13, số tiền 34 đậm, thanh 6, dòng phụ 12, nút 14 đậm.
+     Số tiền tự co lại khi widget thấp hơn chỗ cần, để các nút không bị cắt.
      Chữ mẫu bên dưới chỉ dùng cho ảnh xem trước; số thật do FinBudWidget.java điền. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_card"
@@ -7,7 +9,7 @@
     android:layout_height="match_parent"
     android:background="@drawable/widget_bg_ok"
     android:orientation="vertical"
-    android:padding="14dp">
+    android:padding="18dp">
 
     <TextView
         android:id="@+id/widget_label"
@@ -15,31 +17,33 @@
         android:layout_height="wrap_content"
         android:text="@string/widget_label"
         android:textColor="#E6FFFFFF"
-        android:textSize="11sp" />
+        android:textSize="13sp" />
 
     <TextView
         android:id="@+id/widget_amount"
         android:layout_width="match_parent"
         android:layout_height="0dp"
+        android:layout_marginTop="2dp"
         android:layout_weight="1"
-        android:minHeight="26dp"
-        android:autoSizeMaxTextSize="32sp"
-        android:autoSizeMinTextSize="18sp"
+        android:minHeight="28dp"
+        android:autoSizeMaxTextSize="34sp"
+        android:autoSizeMinTextSize="20sp"
         android:autoSizeTextType="uniform"
         android:fontFamily="sans-serif-black"
         android:gravity="center_vertical"
+        android:letterSpacing="-0.015"
         android:maxLines="1"
         android:text="142.000đ"
         android:textColor="#FFFFFFFF"
-        android:textSize="26sp" />
+        android:textSize="34sp" />
 
     <ProgressBar
         android:id="@+id/widget_bar"
         style="@android:style/Widget.ProgressBar.Horizontal"
         android:layout_width="match_parent"
-        android:layout_height="5dp"
+        android:layout_height="6dp"
         android:layout_marginTop="4dp"
-        android:layout_marginBottom="4dp"
+        android:layout_marginBottom="6dp"
         android:max="100"
         android:progress="38"
         android:progressDrawable="@drawable/widget_progress" />
@@ -48,67 +52,56 @@
         android:id="@+id/widget_spent"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:maxLines="1"
         android:ellipsize="end"
+        android:maxLines="1"
         android:text="Đã chi 88.000đ / 230.000đ"
         android:textColor="#EBFFFFFF"
-        android:textSize="11sp" />
-
-    <TextView
-        android:id="@+id/widget_tomorrow"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:maxLines="1"
-        android:ellipsize="end"
-        android:text="Ngày mai dự kiến 190.000đ"
-        android:textColor="#EBFFFFFF"
-        android:textSize="11sp" />
+        android:textSize="12sp" />
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="32dp"
-        android:layout_marginTop="8dp"
+        android:layout_height="42dp"
+        android:layout_marginTop="12dp"
         android:orientation="horizontal">
 
         <TextView
             android:id="@+id/widget_btn_voice"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_marginEnd="3dp"
+            android:layout_marginEnd="4dp"
             android:layout_weight="1"
             android:background="@drawable/widget_btn"
             android:gravity="center"
             android:text="@string/widget_voice"
             android:textColor="#FFFFFFFF"
-            android:textSize="13sp"
+            android:textSize="14sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/widget_btn_type"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_marginStart="3dp"
-            android:layout_marginEnd="3dp"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
             android:layout_weight="1"
             android:background="@drawable/widget_btn"
             android:gravity="center"
             android:text="@string/widget_type"
             android:textColor="#FFFFFFFF"
-            android:textSize="13sp"
+            android:textSize="14sp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/widget_btn_ocr"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_marginStart="3dp"
-            android:layout_weight="1.5"
+            android:layout_marginStart="4dp"
+            android:layout_weight="1.6"
             android:background="@drawable/widget_btn"
             android:gravity="center"
             android:text="@string/widget_ocr"
             android:textColor="#FFFFFFFF"
-            android:textSize="13sp"
+            android:textSize="14sp"
             android:textStyle="bold" />
     </LinearLayout>
 </LinearLayout>
