@@ -42,20 +42,21 @@ Sản phẩm được nghiên cứu và phát triển theo quy trình Design Thi
 * **Một ô nhập duy nhất:** gõ hoặc bấm **Nói** ngay trong ô; nói xong hoặc bấm Enter là app tự phân tích.
 * **Một hệ thống nhận giọng chung** (`VoiceEngine.java`) cho cả 3 nút Nói: nút **Nói** trên widget, nút **Nói** trong
   pop-up nhập nhanh và nút **Nói** trong app. Cùng chế độ, cùng thứ tự dự phòng, cùng cách đọc số, cùng thông báo lỗi.
-* **Hai chế độ nhận giọng** (Cài đặt → *Nhận giọng nói*):
+* **Hai mô hình nhận giọng, đều chạy hoàn toàn trên máy** (Cài đặt → *Nhận giọng nói*), âm thanh không rời khỏi điện thoại:
 
-  | Chế độ | Dùng gì | Âm thanh đi đâu |
+  | Ô cài đặt | Mô hình | Ghi chú |
   |---|---|---|
-  | **Chính xác nhất** *(mặc định)* | Nhận giọng có sẵn của Android (thường là Google) | **Gửi lên máy chủ** của dịch vụ để nhận dạng, cần mạng |
-  | **Chỉ trên máy** | Bộ nhận on-device của Android nếu máy đã có gói tiếng Việt, không thì Vosk | Không rời khỏi máy |
+  | **Mô hình mới** *(mặc định)* | Zipformer tiếng Việt 30M (~6000 giờ dữ liệu), chạy bằng [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) | Chính xác hơn Vosk nhiều. Nạp không được thì tự dùng Vosk |
+  | **Vosk** | Vosk tiếng Việt (mô hình cũ) | Nhẹ hơn, kém chính xác hơn |
 
-  * *Chính xác nhất*: ưu tiên dịch vụ của Google (dịch vụ mặc định của một số hãng không hỗ trợ tiếng Việt). Mất mạng,
-    dịch vụ lỗi hoặc không hỗ trợ tiếng Việt thì tự chuyển sang Vosk và báo rõ lý do.
-  * *Chỉ trên máy*: trên Android 13+ app kiểm tra trước máy đã có gói tiếng Việt chưa; nếu máy hỗ trợ mà chưa tải thì
-    nhờ máy tải về, trong lúc đó dùng Vosk.
-* **Vosk (dự phòng, chạy trên máy):** model tiếng Việt cỡ nhỏ đóng gói trong APK, nạp một lần và dùng chung cho app
-  và pop-up. Chỉ nạp khi cần (nạp sẵn ở nền nếu đang ở chế độ *Chỉ trên máy* hoặc máy không có dịch vụ nhận giọng).
-  Chọn phương án nghe có số tiền hợp lệ trong 3 phương án Vosk trả về.
+  * Ghi âm do app tự làm và tự nhận ra lúc ngừng nói (~0,9 giây im lặng). Mô hình mới hiện chữ tạm khoảng mỗi 1,2 giây
+    rồi nhận dạng lại cả câu khi nói xong.
+  * Mỗi mô hình nạp một lần và dùng chung cho app và pop-up; nạp sẵn ở nền vài giây sau khi mở app.
+  * Mọi lỗi micro được bắt và báo thành thông báo, không làm văng app.
+* **Giấy phép mô hình mới:** Zipformer 30M của **hynt**
+  ([huggingface.co/hynt/Zipformer-30M-RNNT-6000h](https://huggingface.co/hynt/Zipformer-30M-RNNT-6000h)), bản int8 cho sherpa-onnx
+  `sherpa-onnx-zipformer-vi-30M-int8-2026-02-09`, giấy phép **CC BY-NC-ND 4.0**: chỉ dùng **phi thương mại**, phân phối
+  nguyên vẹn, không chỉnh sửa. Nếu FinBud được thương mại hoá phải thay mô hình này. Chi tiết: `android/app/src/main/assets/zipformer-vi/LICENSE.txt`.
 * **Đọc số bằng chữ** (`VoiceNumbers.java`, khớp `voice-parse.js`): kết quả giọng nói được đổi sang chữ số trước khi phân tích, ví dụ
   *"một trăm hai mươi nghìn tiền sách"* → `tiền sách 120.000đ`, *"bốn lăm ca phở"* → `phở 45.000đ`.
 * **Hiểu cách nói của sinh viên:**
@@ -153,11 +154,12 @@ FinBud-app/
 ├─ tools/widget/               # Kiểm tra QuickParser + VoiceNumbers (Java) khớp với JS
 ├─ android/app/src/main/
 │  ├─ assets/model-vn/         # Model Vosk tiếng Việt (+ file uuid)
+│  ├─ assets/zipformer-vi/     # Mô hình mới: Zipformer tiếng Việt 30M int8 (+ LICENSE.txt)
 │  └─ java/com/tnn/finbud/
 │     ├─ MainActivity.java     # Đăng ký plugin
-│     ├─ VoiceEngine.java      # Hệ thống nhận giọng chung (Android / trên máy / Vosk) cho app, pop-up, widget
+│     ├─ VoiceEngine.java      # Hệ thống nhận giọng chung (Zipformer / Vosk) cho app, pop-up, widget
 │     ├─ VoicePlugin.java      # Nút Nói trong app gọi VoiceEngine
-│     ├─ VoiceNumbers.java, SpeechHelper.java   # Đọc số bằng chữ; chọn dịch vụ, mã lỗi, chẩn đoán
+│     ├─ VoiceNumbers.java, SpeechHelper.java   # Đọc số bằng chữ; ghi lỗi, chẩn đoán
 │     ├─ ReceiptScannerPlugin.java  # OCR ML Kit
 │     ├─ FinBudWidget.java, WidgetPlugin.java   # Widget màn hình chính
 │     └─ QuickAddActivity.java, QuickParser.java  # Bảng nhập nhanh từ widget
@@ -184,14 +186,19 @@ cd android && ./gradlew assembleDebug
 ```
 Sau mỗi lần sửa thư mục `www/`, chạy lại `npx cap sync android`.
 
+Thư viện **sherpa-onnx** (chạy mô hình mới) không có trên Maven Central: ở lần build đầu, Gradle tự tải
+`sherpa-onnx-static-link-onnxruntime-2.0.1.aar` (~39 MB) từ GitHub releases của k2-fsa/sherpa-onnx, kiểm tra SHA-256 rồi lưu
+vào `android/app/libs/` (không đưa lên git). Lần build đầu vì vậy cần mạng.
+
 **Chạy thử giao diện trên trình duyệt:**
 ```bash
 python -m http.server 8765 --directory www
 # mở http://localhost:8765
 ```
-Cần chạy qua server để app tải được `receipt_model.json`; mở thẳng file `index.html` thì phân loại chỉ dùng luật đơn giản. OCR ML Kit và Vosk chỉ hoạt động trong app Android.
+Cần chạy qua server để app tải được `receipt_model.json`; mở thẳng file `index.html` thì phân loại chỉ dùng luật đơn giản. OCR ML Kit và nhận giọng (Zipformer, Vosk) chỉ hoạt động trong app Android.
 
-> APK khá nặng vì đóng gói sẵn model giọng nói Vosk và model ML Kit (thêm khoảng 38 MB) để dùng được khi không có mạng.
+> APK khá nặng vì đóng gói sẵn 2 model giọng nói (Zipformer ~33 MB, Vosk ~51 MB) và model ML Kit (~38 MB) để dùng được khi không có mạng.
+> APK chỉ build cho chip ARM (`arm64-v8a`, `armeabi-v7a`), tức gần như mọi điện thoại thật; máy ảo x86 không chạy được.
 
 ---
 
@@ -202,9 +209,9 @@ Cần chạy qua server để app tải được `receipt_model.json`; mở th�
 | "Model chưa sẵn sàng" | Thư mục model phải tên đúng `assets` (không phải `assests`), nằm ở `android/app/src/main/assets/model-vn/` |
 | Lỗi nạp model, báo thiếu `uuid` | Cần file văn bản `uuid` (một dòng bất kỳ) trong `assets/model-vn/`; đổi nội dung khi thay model |
 | Không bật được micro | Chưa cấp quyền micro; app xin quyền ở lần bấm **Nói** đầu tiên |
-| Báo "chưa có gói tiếng Việt ngoại tuyến" | Đang ở chế độ *Chỉ trên máy*. Tải gói tiếng Việt trong cài đặt nhận giọng nói của Android (thường ở Google → Giọng nói / Nhận dạng giọng nói ngoại tuyến), hoặc để app dùng Vosk |
-| Nói bị lỗi, không rõ vì sao | Vào Cài đặt → **Chẩn đoán**: xem dịch vụ nhận giọng đang dùng, máy có gói tiếng Việt trên máy chưa, trạng thái Vosk và lỗi gần nhất (kể cả lỗi của pop-up widget). Bấm *Sao chép để gửi hỗ trợ* |
-| Nhận giọng kém, hay nghe sai số | Có thể app đang dùng Vosk (mất mạng hoặc chế độ *Chỉ trên máy* khi chưa có gói ngoại tuyến). Nói chậm, rõ đơn vị tiền ("nghìn", "k") |
+| Báo "Không nạp được mô hình mới, chuyển sang Vosk" | Xem Cài đặt → **Chẩn đoán**, dòng "Mô hình mới" và "Lỗi gần nhất". Kiểm tra `assets/zipformer-vi/` có đủ 4 file `.onnx`/`tokens.txt` |
+| Nói bị lỗi, không rõ vì sao | Vào Cài đặt → **Chẩn đoán**: xem mô hình đang dùng, trạng thái từng mô hình và lỗi gần nhất (kể cả lỗi của pop-up widget). Bấm *Sao chép để gửi hỗ trợ* |
+| Nhận giọng kém, hay nghe sai số | Kiểm tra đang chọn *Mô hình mới*. Nói rõ đơn vị tiền ("nghìn", "k"); app tự dừng khi im lặng ~0,9 giây nên nói liền một câu |
 | Không thấy lỗi gì | Mở `chrome://inspect` xem console WebView, hoặc `adb logcat` lọc `Capacitor`, `vosk` |
 
 ---
@@ -221,8 +228,8 @@ Cần chạy qua server để app tải được `receipt_model.json`; mở th�
 - [ ] **Đánh giá trên hóa đơn thật của sinh viên:** thu thập 100–200 mẫu (trà sữa, tạp hóa, siêu thị), đo độ chính xác tổng tiền và cải thiện mô hình
 - [ ] **Tự động đọc thông báo biến động số dư (Coming soon):** lắng nghe thông báo từ Vietcombank, MB Bank, Techcombank, MoMo, ZaloPay... qua dịch vụ Android Native với whitelist bảo vệ quyền riêng tư (hiện có nút Giả lập để xem trước)
 - [x] **Home Screen Widget:** con số chi tiêu ngày trên màn hình chính, nhập nhanh không cần mở app
-- [x] **Nhận giọng của Android** làm chế độ chính, Vosk làm dự phòng
-- [ ] **Đo độ chính xác giọng nói:** đọc bộ câu mẫu với từng chế độ, so tỷ lệ đúng số tiền và danh mục
+- [x] **Mô hình nhận giọng mới** (Zipformer tiếng Việt, chạy trên máy), Vosk làm lựa chọn thay thế
+- [ ] **Đo độ chính xác giọng nói:** đọc bộ câu mẫu với từng mô hình, so tỷ lệ đúng số tiền và danh mục
 - [ ] **Bóc tách từng dòng sản phẩm:** mở rộng pipeline CRAFT + VietOCR / mô hình hiểu bố cục để lấy chi tiết món hàng
 - [ ] **Bảo mật & đồng bộ:** mã hóa cơ sở dữ liệu AES-256, sao lưu và đồng bộ đa thiết bị
 
@@ -236,6 +243,6 @@ Cần chạy qua server để app tải được `receipt_model.json`; mở th�
 * Hóa đơn quá dài hoặc chụp nghiêng, nhàu có thể làm giảm độ chính xác.
 * Bộ phân loại học từ dữ liệu tự sinh; từ hiếm hoặc cách gọi riêng vẫn có thể bị đoán sai, nên app luôn cho chọn lại danh mục trước khi lưu.
 * Nếu tự nhập tiền nhà, điện, nước… dù đã khai trong Chi phí cố định, khoản đó sẽ bị tính hai lần.
-* Ở chế độ nhận giọng *Chính xác nhất*, âm thanh được gửi lên máy chủ của dịch vụ nhận giọng (thường là Google). Chọn *Chỉ trên máy* nếu không muốn.
-* Máy không có dịch vụ nhận giọng (không có Google) chỉ dùng được Vosk, độ chính xác thấp hơn.
+* Mô hình nhận giọng mới dùng giấy phép CC BY-NC-ND 4.0: không dùng được nếu app thương mại hoá.
+* Độ chính xác của mô hình mới mới dựa trên số liệu tác giả công bố, chưa đo trên giọng thật của người dùng FinBud.
 * Chưa có đọc thông báo ngân hàng tự động (chỉ có giả lập).
