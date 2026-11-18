@@ -144,7 +144,6 @@ function render(){
    <div class="big">${c.rem>=0?fmt(c.rem):"Vượt "+fmt(-c.rem)}</div>
    <div class="bar"><i style="width:${Math.min(100,c.ratio*100)}%"></i></div>
    <div class="ws">Đã chi ${fmt(c.tdy)} / ${fmt(c.limit)}${c.ratio>1?" · Vượt hạn mức":""}</div>
-   <div class="ws">Ngày mai dự kiến ${fmt(c.tomorrow)}</div>
    <div class="wrow"><button class="wb" onclick="quick()">Nói / gõ</button><button class="wb" onclick="ocr()">Quét hóa đơn</button></div></div>
   <div class="card xtra"><div><div class="mut">Tiền thêm tháng này</div><b class="pos">+${fmt(c.extra)}</b></div><button class="ob" onclick="addMoney()">Thêm tiền</button></div>
   <h2>Chi tiêu tháng này</h2><div class="card">${ents.length?`<div class="tot"><span class="mut">Tổng đã chi</span><b>${fmt(c.spent)}</b></div>
@@ -156,9 +155,8 @@ function render(){
  }else{
   const th=getTheme(),vm=getVoiceMode();
   sc.innerHTML=`<h1>Cài đặt</h1><h2>Giao diện</h2><div class="card"><div class="seg">${[["auto","Theo máy"],["light","Sáng"],["dark","Tối"]].map(([k,l])=>`<button class="${k===th?"on":""}" onclick="setTheme('${k}')">${l}</button>`).join("")}</div></div>
-  <h2>Nhận giọng nói</h2><div class="card"><div class="seg">${[["zip","Mô hình mới"],["vosk","Vosk"]].map(([k,l])=>`<button class="${k===vm?"on":""}" onclick="setVoiceMode('${k}')">${l}</button>`).join("")}</div>
-  <div class="hint">${vm==="zip"?"Zipformer tiếng Việt, chính xác hơn nhiều. Chạy hoàn toàn trên máy, không cần mạng.":"Mô hình cũ, kém chính xác hơn. Chạy hoàn toàn trên máy, không cần mạng."} Áp dụng cho cả nút Nói trên widget.</div>
-  <div class="mut" style="margin-top:8px">Mô hình mới: Zipformer 30M của hynt (huggingface.co/hynt/Zipformer-30M-RNNT-6000h), giấy phép CC BY-NC-ND 4.0, chỉ dùng phi thương mại.</div></div>
+  <h2>Nhận giọng nói</h2><div class="card"><div class="seg">${[["zip","Zipformer 30M"],["vosk","Vosk"]].map(([k,l])=>`<button class="${k===vm?"on":""}" onclick="setVoiceMode('${k}')">${l}</button>`).join("")}</div>
+  <div class="hint">${vm==="zip"?"Zipformer tiếng Việt, chính xác hơn nhiều. Chạy hoàn toàn trên máy, không cần mạng.":"Mô hình cũ, kém chính xác hơn. Chạy hoàn toàn trên máy, không cần mạng."}</div></div>
   <h2>Ngân sách tháng</h2><div class="card">
   <label class="s">Tên<input placeholder="Nhập tên của bạn" value="${esc(S.set.name||"")}" onchange="S.set.name=this.value.trim();save();toast('Đã lưu')"></label>
   <label class="s">Ngân sách<input type="number" inputmode="numeric" value="${S.set.budget}" onchange="S.set.budget=+this.value||0;save();toast('Đã lưu')"></label>
@@ -166,9 +164,7 @@ function render(){
   <div class="mut">Tiền nhà, học phí, internet…</div>
   <div class="hint">Hạn mức mỗi ngày = (Có thể chi − Đã chi) ÷ số ngày còn lại.</div></div>
   <h2>Thông báo ngân hàng <span class="tag">Coming soon</span></h2><div class="card"><div class="mut">Tự ghi chi tiêu từ thông báo biến động số dư (MB, Vietcombank, MoMo…). Bấm nút dưới để xem thử.</div><button class="btn g w" onclick="simNoti()">Giả lập thông báo</button></div>
-  ${VP()?'<h2>Chẩn đoán</h2><div class="card"><div class="mut" id="diag">Đang đọc…</div><button class="btn g w" onclick="copyDiag()">Sao chép để gửi hỗ trợ</button></div>':""}
   <button class="btn r w" style="margin-top:22px" onclick="if(confirm('Xóa toàn bộ dữ liệu?')){S.set=null;S.tx=[];S.inc=[];save();render()}">Xóa toàn bộ dữ liệu</button>`;
-  loadDiag();
  }
 }
 /* Giả lập thông báo biến động số dư: hiện banner như thông báo hệ thống rồi tự ghi giao dịch (s:"Thông báo") */
@@ -270,15 +266,6 @@ function stopVoice(cancel){const e=voiceEngine;isListening=false;setMic(false);
  if(e==="native"){if(cancel){voiceEngine=null;VP()?.cancel().catch(()=>{})}else VP()?.stop().catch(()=>{})}
  else voiceEngine=null}
 
-/* Cài đặt → Chẩn đoán: trạng thái 2 mô hình, lỗi gần nhất (kể cả lỗi văng pop-up của widget) */
-let diagText="";
-async function loadDiag(){const p=VP(),el=$("#diag");if(!p||!el)return;
- try{const d=await p.diagnostics(),L=d.lastError;
-  diagText=["Máy: "+d.device+" · Android "+d.android,"Đang dùng: "+(getVoiceMode()==="vosk"?"Vosk":"Mô hình mới"),
-   "Mô hình mới: "+d.zip,"Vosk: "+d.vosk,
-   "Lỗi gần nhất: "+(L?L.time+" · "+L.where+" · "+L.detail:"không có")].join("\n");
-  el.innerHTML=esc(diagText.split("\n").slice(0,5).join("\n")).replace(/\n/g,"<br>")}catch(e){el.textContent="Không đọc được thông tin"}}
-function copyDiag(){try{navigator.clipboard.writeText(diagText);toast("Đã sao chép")}catch(e){toast("Không sao chép được")}}
 function setMic(on){const f=$("#qf"),b=$("#mic"),i=$("#qi");if(f)f.classList.toggle("on",on);if(b)b.textContent=on?"Dừng":"Nói";if(i)i.placeholder=on?"Đang nghe…":"ăn bún bò 35k"}
 function quick(){
  sheet("Nhập nhanh",`<div class="fld" id="qf"><input id="qi" placeholder="ăn bún bò 35k" enterkeyhint="done" autocomplete="off"><button class="mic" id="mic">Nói</button></div><div id="qr"></div>`);

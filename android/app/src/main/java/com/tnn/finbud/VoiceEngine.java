@@ -135,7 +135,7 @@ final class VoiceEngine {
         loadZip(ctx, () -> {
             if (!active) return;
             if (zipModel == null) {                          // không nạp được: vẫn nói được bằng Vosk
-                cb.onInfo("Không nạp được mô hình mới, chuyển sang Vosk");
+                cb.onInfo("Không nạp được Zipformer 30M, chuyển sang Vosk");
                 startVosk();
                 return;
             }

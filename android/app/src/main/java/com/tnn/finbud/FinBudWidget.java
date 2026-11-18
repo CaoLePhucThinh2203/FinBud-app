@@ -64,7 +64,6 @@ public class FinBudWidget extends AppWidgetProvider {
             v.setTextViewText(R.id.widget_amount, "Chưa thiết lập");
             v.setProgressBar(R.id.widget_bar, 100, 0, false);
             v.setTextViewText(R.id.widget_spent, "Mở FinBud để nhập ngân sách tháng");
-            v.setTextViewText(R.id.widget_tomorrow, "");
             return v;
         }
 
@@ -73,7 +72,6 @@ public class FinBudWidget extends AppWidgetProvider {
         v.setTextViewText(R.id.widget_amount, l.rem >= 0 ? fmt(l.rem) : "Vượt " + fmt(-l.rem));
         v.setProgressBar(R.id.widget_bar, 100, (int) Math.round(Math.min(100, l.ratio * 100)), false);
         v.setTextViewText(R.id.widget_spent, "Đã chi " + fmt(l.tdy) + " / " + fmt(l.limit) + (l.ratio > 1 ? " · Vượt hạn mức" : ""));
-        v.setTextViewText(R.id.widget_tomorrow, "Ngày mai dự kiến " + fmt(l.tomorrow));
         return v;
     }
 
