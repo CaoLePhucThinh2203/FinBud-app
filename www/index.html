@@ -57,6 +57,8 @@ input:focus{border-color:var(--pri)}.card input{background:var(--ph)}
 .bigin{border:0;background:none;text-align:center;font-size:30px;font-weight:800;padding:4px}.bigin:focus{border:0}
 .note{border:0;border-bottom:1px dashed var(--line);border-radius:0;background:none;text-align:center;font-size:14px;padding:8px 4px}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}.chips.c{justify-content:center}
+.items{background:var(--card);border-radius:16px;padding:10px 14px;margin-top:10px;font-size:13px}.items summary{cursor:pointer;font-weight:600;padding:2px 0}
+.irow{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)}.irow:last-child{border:0}.irow .n{flex:1;min-width:0}.irow b{white-space:nowrap}
 .chip,.cc{border:1px solid var(--line);background:var(--ph);color:var(--tx);border-radius:999px;padding:7px 12px;font-size:13px}
 .cc{display:inline-flex;align-items:center;gap:6px}.cc .dot{width:8px;height:8px}.cc.on{border-color:var(--pri);background:var(--pri2);color:var(--pri);font-weight:600}
 .cam{height:230px;background:#1b2523;border-radius:16px;position:relative;display:grid;place-items:center;color:#9fb3ad;font-size:13px;overflow:hidden;text-align:center;padding:0 20px}
@@ -80,6 +82,7 @@ label.s{display:flex;justify-content:space-between;align-items:center;gap:10px;p
  <div class="sheet" id="sheet"><div class="panel" id="panel"></div></div>
  <div class="toast" id="toast"></div>
 </div>
+<script src="receipt-rules.js"></script>
 <script src="receipt-engine.js"></script>
 <script src="voice-parse.js"></script>
 <script>
@@ -315,7 +318,12 @@ async function scan(f){if(!f)return;const cam=$("#cam"),o=$("#or");cam.classList
  if(ok&&r.candidates&&r.candidates.length>1&&r.conf<.75)extra+='<div class="mut" style="margin-top:8px">Số tiền nào đúng?</div><div class="chips">'+r.candidates.map(a=>`<button class="chip" onclick="$('#ra').value=${a}">${fmt(a)}</button>`).join("")+'</div>';
  if(ok&&r.conf<.5)extra+='<div class="mut" style="color:var(--warn)">Độ tin cậy thấp, hãy kiểm tra kỹ số tiền.</div>';
  if(r&&r.date)extra+='<div class="mut">Ngày trên hóa đơn: '+r.date.split("-").reverse().join("/")+(d0?"":" (quá cũ, sẽ ghi theo hôm nay)")+'</div>';
+ const verified=!!(ok&&r.itemsCheck&&r.itemsCheck.status==="verified");
+ if(verified)extra='<div class="mut pos" style="margin-top:4px">Tổng tiền khớp với tổng các món trên hóa đơn</div>'+extra;
  if(extra)$("#or2 .res").insertAdjacentHTML("afterbegin",extra);
+ /* Các món trên hóa đơn (luật dòng hàng của QuetHoaDon, receipt-rules.js) */
+ if(r&&r.items&&r.items.length)$("#or2 .res").insertAdjacentHTML("afterend",`<details class="items"${verified?"":" open"}><summary>${r.items.length} món trên hóa đơn${verified?' · <span class="pos">khớp tổng</span>':""}</summary>`+
+  r.items.map(i=>`<div class="irow"><span class="n">${esc(i.name||"(không rõ tên)")}${i.discount||i.quantity===1?"":` <span class="mut">${i.quantity} × ${fmt(i.unit_price)}</span>`}</span><b${i.amount<0?' class="pos"':""}>${i.amount<0?"−"+fmt(-i.amount):fmt(i.amount)}</b></div>`).join("")+"</details>");
  if(window.__ocr)$("#or2").insertAdjacentHTML("beforeend",'<button class="chip" onclick="try{navigator.clipboard.writeText(JSON.stringify(window.__ocr));toast(\'Đã sao chép JSON OCR\')}catch(e){}">Sao chép JSON OCR</button>')}
 document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;render()});
 $("#sheet").onclick=e=>{if(e.target.id==="sheet"&&!lock)closeSheet()};
