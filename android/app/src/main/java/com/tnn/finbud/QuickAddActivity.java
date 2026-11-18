@@ -71,7 +71,8 @@ public class QuickAddActivity extends Activity {
     private LinearLayout result, chipRow, sheet;
     private final Map<String, TextView> chips = new HashMap<>();
     private String cat = "other";
-    private boolean listening, deviceOnly;              // deviceOnly: cài đặt "Chỉ trên máy" trong app
+    private boolean listening;
+    private String voiceEngine;                          // "zip" (mô hình mới) | "vosk", theo cài đặt trong app
     private String voiceSource;                          // null = gõ tay
     private VoiceEngine voice;
     private final Runnable analyzeLater = this::analyze;
@@ -88,10 +89,10 @@ public class QuickAddActivity extends Activity {
             return;
         }
         palette(data.optString("theme", "auto"));
-        deviceOnly = "device".equals(data.optString("voice", "best"));
+        voiceEngine = VoiceEngine.normalizeEngine(data.optString("voice", VoiceEngine.ZIP));
         setContentView(buildUi());
         voice = new VoiceEngine(this, voiceCallback());
-        VoiceEngine.prepare(this, deviceOnly);
+        VoiceEngine.prepare(this, voiceEngine);
         loadClassifier();
         if (getIntent().getBooleanExtra(EXTRA_LISTEN, false)) {
             ui.postDelayed(this::toggleMic, 250);               // nút Nói trên widget: bắt đầu nghe luôn
@@ -455,7 +456,7 @@ public class QuickAddActivity extends Activity {
         try {
             setMicUi(true);
             showStatus("Đang nghe…");
-            voice.start(deviceOnly);
+            voice.start(voiceEngine);
         } catch (Exception e) {                                  // không để pop-up văng ra ngoài
             setMicUi(false);
             SpeechHelper.recordError(this, "pop-up: bật nhận giọng", SpeechHelper.stack(e));

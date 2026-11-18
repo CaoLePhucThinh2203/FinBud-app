@@ -153,8 +153,9 @@ function render(){
  }else{
   const th=getTheme(),vm=getVoiceMode();
   sc.innerHTML=`<h1>Cài đặt</h1><h2>Giao diện</h2><div class="card"><div class="seg">${[["auto","Theo máy"],["light","Sáng"],["dark","Tối"]].map(([k,l])=>`<button class="${k===th?"on":""}" onclick="setTheme('${k}')">${l}</button>`).join("")}</div></div>
-  <h2>Nhận giọng nói</h2><div class="card"><div class="seg">${[["best","Chính xác nhất"],["device","Chỉ trên máy"]].map(([k,l])=>`<button class="${k===vm?"on":""}" onclick="setVoiceMode('${k}')">${l}</button>`).join("")}</div>
-  <div class="hint">${vm==="best"?"Dùng nhận giọng của Android (thường là Google). Cần mạng, âm thanh được gửi lên máy chủ của dịch vụ để nhận dạng. Mất mạng thì tự chuyển sang nhận giọng trên máy.":"Âm thanh không rời khỏi máy: dùng gói tiếng Việt ngoại tuyến của Android nếu đã tải, không thì dùng Vosk (kém chính xác hơn)."}</div></div>
+  <h2>Nhận giọng nói</h2><div class="card"><div class="seg">${[["zip","Mô hình mới"],["vosk","Vosk"]].map(([k,l])=>`<button class="${k===vm?"on":""}" onclick="setVoiceMode('${k}')">${l}</button>`).join("")}</div>
+  <div class="hint">${vm==="zip"?"Zipformer tiếng Việt, chính xác hơn nhiều. Chạy hoàn toàn trên máy, không cần mạng.":"Mô hình cũ, kém chính xác hơn. Chạy hoàn toàn trên máy, không cần mạng."} Áp dụng cho cả nút Nói trên widget.</div>
+  <div class="mut" style="margin-top:8px">Mô hình mới: Zipformer 30M của hynt (huggingface.co/hynt/Zipformer-30M-RNNT-6000h), giấy phép CC BY-NC-ND 4.0, chỉ dùng phi thương mại.</div></div>
   <h2>Ngân sách tháng</h2><div class="card">
   <label class="s">Tên<input placeholder="Nhập tên của bạn" value="${esc(S.set.name||"")}" onchange="S.set.name=this.value.trim();save();toast('Đã lưu')"></label>
   <label class="s">Ngân sách<input type="number" inputmode="numeric" value="${S.set.budget}" onchange="S.set.budget=+this.value||0;save();toast('Đã lưu')"></label>
@@ -218,15 +219,16 @@ function setTheme(t){theme=t;try{localStorage.setItem(TK,t)}catch(e){}applyTheme
 /* --- Giọng nói ---
    Trên điện thoại: MỘT hệ thống chung (VoiceEngine.java, plugin FinBudVoice) cho cả 3 nút Nói:
    nút Nói ở widget, nút Nói trong pop-up nhập nhanh và nút Nói ở đây.
-     Chính xác nhất: nhận giọng của Android (ưu tiên Google) -> lỗi mạng / dịch vụ / ngôn ngữ -> Vosk.
-     Chỉ trên máy:   bộ nhận on-device nếu máy có gói tiếng Việt -> không có -> Vosk. Âm thanh không rời khỏi máy.
+     Mô hình mới (zip): Zipformer tiếng Việt 30M qua sherpa-onnx; nạp không được thì tự dùng Vosk.
+     Vosk (vosk):       mô hình cũ.
+   Cả hai chạy trên máy, âm thanh không rời khỏi điện thoại.
    Kết quả trả về đã đổi số đọc bằng chữ thành chữ số (VoiceNumbers.java, khớp voice-parse.js).
    Trên trình duyệt (chạy thử): Web Speech API + voice-parse.js. */
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition, VK="finbud.voice";
 let voiceMode;try{voiceMode=localStorage.getItem(VK)}catch(e){}
-const getVoiceMode=()=>voiceMode==="device"?"device":"best";
+const getVoiceMode=()=>voiceMode==="vosk"?"vosk":"zip";   // giá trị cũ ("best", "device") -> mô hình mới
 const VP=()=>window.Capacitor?.Plugins?.FinBudVoice;
-function setVoiceMode(m){voiceMode=m;try{localStorage.setItem(VK,m)}catch(e){}render();syncWidget();VP()?.prepare({deviceOnly:m==="device"}).catch(()=>{})}
+function setVoiceMode(m){voiceMode=m;try{localStorage.setItem(VK,m)}catch(e){}render();syncWidget();VP()?.prepare({engine:m}).catch(()=>{})}
 let voiceEngine=null;   // "native" | "web" | null
 
 /* Chỉ dùng cho Web Speech (trình duyệt); trên điện thoại VoiceEngine đã làm việc này */
@@ -244,7 +246,7 @@ function initVoice(){const p=VP();if(!p)return;
  p.addListener("info",e=>{if(voiceEngine==="native")toast(e.message)});
  p.addListener("result",e=>{if(voiceEngine==="native")voiceDone(e.text,e.engine==="vosk"?"Voice Offline":"Voice")});
  p.addListener("error",e=>{if(voiceEngine==="native")voiceFail(e.message)});
- setTimeout(()=>p.prepare({deviceOnly:getVoiceMode()==="device"}).catch(()=>{}),3000);   // nạp trước những gì sẽ cần
+ setTimeout(()=>p.prepare({engine:getVoiceMode()}).catch(()=>{}),3000);   // nạp trước mô hình sẽ dùng
 }
 if(document.readyState==="loading")window.addEventListener("DOMContentLoaded",initVoice);else initVoice();
 
@@ -252,7 +254,7 @@ async function startVoice(){const p=VP();
  if(p){
   try{const r=await p.requestPermissions();if(r.audio!=="granted"){toast("Cần cấp quyền micro để nói");return}}catch(e){}
   voiceEngine="native";isListening=true;setMic(true);
-  p.start({deviceOnly:getVoiceMode()==="device"}).catch(e=>voiceFail("Không bật được nhận giọng nói: "+(e.message||e)));
+  p.start({engine:getVoiceMode()}).catch(e=>voiceFail("Không bật được nhận giọng nói: "+(e.message||e)));
   return}
  if(!SR){toast("Máy chưa hỗ trợ nhận giọng nói trong app. Dùng micro bàn phím nhé");$("#qi").focus();return}
  const r=new SR();r.lang="vi-VN";r.maxAlternatives=3;voiceEngine="web";isListening=true;setMic(true);
@@ -265,14 +267,14 @@ function stopVoice(cancel){const e=voiceEngine;isListening=false;setMic(false);
  if(e==="native"){if(cancel){voiceEngine=null;VP()?.cancel().catch(()=>{})}else VP()?.stop().catch(()=>{})}
  else voiceEngine=null}
 
-/* Cài đặt → Chẩn đoán: dịch vụ nhận giọng, gói tiếng Việt trên máy, Vosk, lỗi gần nhất (kể cả lỗi văng pop-up của widget) */
+/* Cài đặt → Chẩn đoán: trạng thái 2 mô hình, lỗi gần nhất (kể cả lỗi văng pop-up của widget) */
 let diagText="";
 async function loadDiag(){const p=VP(),el=$("#diag");if(!p||!el)return;
  try{const d=await p.diagnostics(),L=d.lastError;
-  diagText=["Máy: "+d.device+" · Android "+d.android,"Nhận giọng trực tuyến: "+d.service,"Nhận giọng trên máy: "+d.onDevice,"Vosk: "+d.vosk,
-   "Dịch vụ có trên máy: "+((d.services||[]).join(", ")||"không có"),"Chế độ: "+(getVoiceMode()==="device"?"Chỉ trên máy":"Chính xác nhất"),
+  diagText=["Máy: "+d.device+" · Android "+d.android,"Đang dùng: "+(getVoiceMode()==="vosk"?"Vosk":"Mô hình mới"),
+   "Mô hình mới: "+d.zip,"Vosk: "+d.vosk,
    "Lỗi gần nhất: "+(L?L.time+" · "+L.where+" · "+L.detail:"không có")].join("\n");
-  el.innerHTML=esc(diagText.split("\n").slice(0,7).join("\n")).replace(/\n/g,"<br>")}catch(e){el.textContent="Không đọc được thông tin"}}
+  el.innerHTML=esc(diagText.split("\n").slice(0,5).join("\n")).replace(/\n/g,"<br>")}catch(e){el.textContent="Không đọc được thông tin"}}
 function copyDiag(){try{navigator.clipboard.writeText(diagText);toast("Đã sao chép")}catch(e){toast("Không sao chép được")}}
 function setMic(on){const f=$("#qf"),b=$("#mic"),i=$("#qi");if(f)f.classList.toggle("on",on);if(b)b.textContent=on?"Dừng":"Nói";if(i)i.placeholder=on?"Đang nghe…":"ăn bún bò 35k"}
 function quick(){
