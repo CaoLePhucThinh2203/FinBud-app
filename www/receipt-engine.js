@@ -65,9 +65,11 @@
     if (ranked.length) { total = ranked[0][0]; const b = ranked[0][1].s, gap = ranked.length > 1 ? b - ranked[1][1].s : 1; conf = (1 / (1 + Math.exp(-b))) * (0.5 + 0.5 * Math.min(1, gap)); }
     let date = "", time = "";
     for (const r of rows) { const d = findDate(r.text); if (d) { date = d; const m = r.text.match(TIME); time = m ? m[0] : ""; break; } }
-    let seller = "", best = -1e9; const th = useS ? -1 : 0.3;
-    feats.forEach((f, i) => { if (Fs[i].y_rel > 0.3) return; const s = useS ? lin("SELLER", f) : heurSeller(Fs[i]); if (s > best && s > th) { best = s; seller = rows[i].text; } });
-    return { total, candidates: ranked.slice(0, 3).map(x => x[0]), conf: Math.round(conf * 1000) / 1000, date, time, seller: seller.trim() };
+    let seller = "", best = -1e9; const th = useS ? -1 : 0.3, sellers = [];
+    feats.forEach((f, i) => { if (Fs[i].y_rel > 0.3) return; const s = useS ? lin("SELLER", f) : heurSeller(Fs[i]); if (s > th) sellers.push([rows[i].text.trim(), s]); if (s > best && s > th) { best = s; seller = rows[i].text; } });
+    sellers.sort((a, b) => b[1] - a[1]);                // các dòng ứng viên tên cửa hàng, điểm cao trước (pickSeller dùng)
+    return { total, candidates: ranked.slice(0, 3).map(x => x[0]), conf: Math.round(conf * 1000) / 1000, date, time, seller: seller.trim(),
+      sellers: sellers.slice(0, 6).map(x => x[0]) };
   }
   function categorize(text) {
     const t = normTok(text);
@@ -88,6 +90,34 @@
     const best = Object.keys(sc).reduce((a, b) => (sc[b] > sc[a] ? b : a));
     return sc[best] > 0 ? best : "other";
   }
+  /* Tên cửa hàng: mô hình chấm điểm dòng rất thích dòng toàn chữ, viết hoa, ở đầu hóa đơn, nên hay chọn nhầm tiêu đề
+     ("HÓA ĐƠN BÁN LẺ", "PHIẾU THANH TOÁN") hoặc dòng nhãn ("Ngày…", "Thu ngân…", "Bàn 5"). Giữ nguyên điểm của mô hình
+     (để vẫn khớp notebook) nhưng bỏ qua các dòng đó và lấy ứng viên kế tiếp. */
+  const NOT_SELLER = new RegExp("^(?:hoa don|phieu|bill|receipt|invoice|lien \\d+|ban sao|copy|the thanh vien|chao mung|welcome|" +
+    "xin cam on|cam on|ban le|ban hang|ngay|gio|thoi gian|thu ngan|nhan vien|nvbh|so hd|so hoa don|so phieu|ma hd|ma don|" +
+    "ma giao dich|khach hang|kh|dia chi|dc \\d+|dt \\d+|sdt|tel|mst|ma so thue|hotline|website|email|fax|quay \\d+|ban \\d+|ban so)(?: |$)");
+  function notSeller(text) {
+    const t = normTok(text);
+    return !t || NOT_SELLER.test(t) || !/[a-z]{2}/.test(t);
+  }
+  const ITEM_HEADER = /\b(?:ten hang|ten mon|mat hang|hang hoa|don gia|thanh tien|so luong)\b/;
+  function pickSeller(o, rows) {
+    const ok = (o.sellers || []).filter(s => !notSeller(s));
+    if (ok.length) { o.seller = ok[0]; return o; }
+    // Dự phòng: mô hình không còn ứng viên nào (vd. tên dính số điện thoại bị chấm điểm thấp) -> dòng đầu tiên trông giống
+    // tên cửa hàng, sau khi bỏ số điện thoại / nhãn dính cuối; dừng khi tới phần món hàng / tiền.
+    const R = rulesLib(), clean = s => (R ? R.cleanField("SELLER", s) || s : s);
+    o.seller = "";
+    for (const r of rows.slice(0, 8)) {
+      const c = clean(String(r.text).trim()), t = normTok(c);
+      if (amounts(c).length || ITEM_HEADER.test(t)) break;
+      if (notSeller(r.text) || notSeller(c) || /^\d/.test(t) || hasKw(t, LEX.kw.addr) || (t.match(/[a-z]/g) || []).length < 3) continue;
+      o.seller = c;
+      break;
+    }
+    return o;
+  }
+
   /* Luật chuyển từ đồ án QuetHoaDon (www/receipt-rules.js), chạy SAU phần trên (phần trên vẫn khớp notebook):
      dòng hàng + kiểm tra tổng các dòng = tổng in trên hóa đơn; tổng theo từ khoá; ngày giờ; làm sạch tên cửa hàng. */
   const rulesLib = () => (typeof window !== "undefined" && window.ReceiptRules) ||
@@ -136,11 +166,12 @@
       const rows = mergeRows(lines.map(l => ({ text: l.text, bbox: [l.left, l.top, l.right, l.bottom] })));
       if (!rows.length) return null;
       const o = extractRows(rows, W, H);
+      pickSeller(o, rows);
       applyRules(o, lines.map(l => ({ text: String(l.text || ""), bbox: [l.left, l.top, l.right, l.bottom] })));
       o.category = categorize(o.seller + " " + rows.slice(0, 60).map(r => r.text).join(" ")); o.mode = E.mode();
       return o;
     },
-    _t: { mergeRows, extractRows, applyRules, categorize, amounts, findDate },
+    _t: { mergeRows, extractRows, pickSeller, notSeller, applyRules, categorize, amounts, findDate },
   };
   const get = u => fetch(u).then(r => (r.ok ? r.json() : null)).catch(() => null);
   E.ready = typeof fetch === "function" ? Promise.all([get("receipt_lexicon.json"), get("receipt_model.json")]).then(([l, m]) => { if (l) E.init(l, m); return E; }) : Promise.resolve(E);

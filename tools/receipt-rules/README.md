@@ -13,6 +13,15 @@
 `receipt-engine.js` gọi các luật này sau bước chấm điểm dòng (`applyRules`): danh sách món, xác nhận tổng khi tổng các
 món bằng một số in trên hóa đơn, ngày giờ, làm sạch tên cửa hàng.
 
+## Chọn tên cửa hàng (riêng của FinBud, không có trong QuetHoaDon)
+
+`receipt-engine.js` (`pickSeller`) bỏ qua dòng tiêu đề / nhãn khi chọn tên cửa hàng. Kiểm tra trên 12 kiểu đầu hóa đơn và
+21 tên / nhãn dễ nhầm:
+
+```bash
+node tools/receipt-rules/check_seller.js
+```
+
 ## Kiểm tra JS khớp Python
 
 Cần một bản clone QuetHoaDon (chỉ đọc, script không ghi gì vào đó) và Python có `numpy`:
