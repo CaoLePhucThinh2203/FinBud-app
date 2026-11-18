@@ -10,10 +10,19 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        // Chỉ build cho chip ARM (gần như mọi điện thoại thật) để APK không phình vì thư viện nhận giọng
+        ndk {
+            abiFilters 'arm64-v8a', 'armeabi-v7a'
+        }
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    packaging {
+        jniLibs {
+            pickFirsts += ['**/libc++_shared.so']   // Vosk và sherpa-onnx có thể cùng mang thư viện này
         }
     }
     buildTypes {
@@ -22,6 +31,29 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+}
+
+// ---- sherpa-onnx (chạy mô hình Zipformer) ----
+// Thư viện không có trên Maven Central nên Gradle tự tải bản AAR chính thức từ GitHub releases ở lần build đầu,
+// kiểm tra SHA-256 (giá trị GitHub công bố cho file này) rồi lưu vào app/libs (không đưa lên git).
+def sherpaVersion = '2.0.1'
+def sherpaName = "sherpa-onnx-static-link-onnxruntime-${sherpaVersion}.aar"
+def sherpaSha256 = '07e042d97f3a6bd5b7fe74d4eef0513dc01a714b16c15a903250095aba43a575'
+def sherpaAar = file("libs/${sherpaName}")
+if (!sherpaAar.exists()) {
+    sherpaAar.parentFile.mkdirs()
+    def part = file("libs/${sherpaName}.part")
+    logger.lifecycle("Tải ${sherpaName} từ GitHub releases của k2-fsa/sherpa-onnx…")
+    new URL("https://github.com/k2-fsa/sherpa-onnx/releases/download/v${sherpaVersion}/${sherpaName}")
+        .withInputStream { input -> part.withOutputStream { out -> out << input } }
+    def md = java.security.MessageDigest.getInstance('SHA-256')
+    part.eachByte(65536) { buf, n -> md.update(buf, 0, n) }
+    def got = md.digest().encodeHex().toString()
+    if (got != sherpaSha256) {
+        part.delete()
+        throw new GradleException("File ${sherpaName} tải về sai SHA-256 (${got}), dừng build")
+    }
+    part.renameTo(sherpaAar)
 }
 
 repositories {
@@ -46,6 +78,9 @@ dependencies {
 
     // OCR hóa đơn trên máy (model đóng gói sẵn trong APK, ~+38 MB, chạy được khi không có mạng)
     implementation 'com.google.mlkit:text-recognition:16.0.0'
+
+    // Nhận giọng tiếng Việt "mô hình mới" (Zipformer, chạy trên máy) – xem phần tải sherpa-onnx bên dưới
+    implementation files(sherpaAar)
 }
 
 apply from: 'capacitor.build.gradle'

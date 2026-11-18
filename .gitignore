@@ -7,3 +7,5 @@ local.properties
 tools/category/data/
 __pycache__/
 tools/widget/build/
+android/app/libs/*.aar
+android/app/libs/*.part
