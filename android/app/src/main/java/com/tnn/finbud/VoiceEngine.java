@@ -1,11 +1,17 @@
 package com.tnn.finbud;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.media.AudioFormat;
+import android.media.AudioRecord;
+import android.media.MediaRecorder;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.speech.RecognitionListener;
 import android.speech.RecognitionSupport;
 import android.speech.RecognitionSupportCallback;
@@ -15,7 +21,6 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.vosk.Model;
 import org.vosk.Recognizer;
-import org.vosk.android.SpeechService;
 import org.vosk.android.StorageService;
 
 import java.util.ArrayList;
@@ -59,7 +64,10 @@ final class VoiceEngine {
     private final Context ctx;
     private final Callback cb;
     private SpeechRecognizer recognizer;
-    private SpeechService vosk;
+    private VoskLoop loop;                                   // luồng ghi âm của Vosk đang chạy
+    private List<android.content.ComponentName> services;   // các dịch vụ trực tuyến sẽ thử lần lượt (null = mặc định)
+    private int attempt;                                     // đang thử dịch vụ thứ mấy
+    private static int okService = -1;                       // dịch vụ đã chạy được lần trước, lần sau dùng luôn
     private boolean active;        // đang trong một lượt nghe (chưa trả kết quả / lỗi)
     private boolean stopping;      // người dùng bấm Dừng
     private String engine = "";
@@ -80,7 +88,9 @@ final class VoiceEngine {
         active = true;
         stopping = false;
         if (!deviceOnly) {
-            if (SpeechHelper.available(ctx)) startAndroid(false);
+            services = SpeechHelper.candidates(ctx);
+            attempt = okService >= 0 && okService < services.size() ? okService : 0;
+            if (!services.isEmpty()) startAndroid(false);
             else startVosk(null);                             // máy không có dịch vụ nhận giọng nào
         } else if (canUseOnDevice()) {
             startAndroid(true);
@@ -94,21 +104,23 @@ final class VoiceEngine {
         if (!active) return;
         stopping = true;
         if (recognizer != null) recognizer.stopListening();
-        else if (vosk != null) vosk.stop();                  // Vosk gửi onFinalResult với phần còn lại
+        else if (loop != null) loop.run = false;             // luồng Vosk lấy nốt kết quả phần đã nói rồi báo về
         else finish(null, null, null, -1);                   // đang nạp model: dừng luôn, không báo lỗi
     }
 
     /** Huỷ hẳn, không trả kết quả (đóng pop-up, rời màn hình). */
     void release() {
         active = false;
+        MAIN.removeCallbacksAndMessages(this);
         destroyRecognizer();
-        if (vosk != null) {
-            try {
-                vosk.stop();
-                vosk.shutdown();
-            } catch (Exception ignored) {
-            }
-            vosk = null;
+        closeVosk();
+    }
+
+    /** Báo luồng ghi âm Vosk dừng; chính luồng đó giải phóng micro và Recognizer khi đã dừng hẳn. */
+    private void closeVosk() {
+        if (loop != null) {
+            loop.run = false;
+            loop = null;
         }
     }
 
@@ -123,13 +135,7 @@ final class VoiceEngine {
         if (!active) return;
         active = false;
         destroyRecognizer();
-        if (vosk != null) {
-            try {
-                vosk.shutdown();
-            } catch (Exception ignored) {
-            }
-            vosk = null;
-        }
+        closeVosk();
         cb.onState("idle");
         if (text != null && !text.trim().isEmpty()) cb.onResult(text.trim(), eng);
         else if (err != null) cb.onError(err, code);
@@ -144,9 +150,12 @@ final class VoiceEngine {
     private void startAndroid(boolean onDevice) {
         engine = onDevice ? "ondevice" : "android";
         try {
-            recognizer = onDevice ? SpeechRecognizer.createOnDeviceSpeechRecognizer(ctx) : SpeechHelper.createOnline(ctx);
+            recognizer = onDevice ? SpeechRecognizer.createOnDeviceSpeechRecognizer(ctx)
+                : SpeechHelper.create(ctx, services.get(attempt));
             recognizer.setRecognitionListener(new RecognitionListener() {
-                public void onReadyForSpeech(Bundle b) {}
+                public void onReadyForSpeech(Bundle b) {
+                    if (!onDevice) okService = attempt;           // dịch vụ này chạy được
+                }
                 public void onBeginningOfSpeech() {}
                 public void onRmsChanged(float v) {}
                 public void onBufferReceived(byte[] b) {}
@@ -186,6 +195,15 @@ final class VoiceEngine {
             return;
         }
         SpeechHelper.recordError(ctx, onDevice ? "nhận giọng trên máy" : "nhận giọng Android", code);
+        // Mã 5 / 11 / 12 / 13: dịch vụ này không dùng được (thường do từ chối app khác hoặc không có tiếng Việt).
+        // Thử dịch vụ kế tiếp (Google khác, rồi dịch vụ mặc định của máy) trước khi chuyển sang Vosk.
+        if (!onDevice && (code == SpeechRecognizer.ERROR_CLIENT || code == 11 || code == 12 || code == 13)
+            && services != null && attempt + 1 < services.size()) {
+            if (okService == attempt) okService = -1;
+            attempt++;
+            MAIN.postAtTime(() -> { if (active) startAndroid(false); }, this, android.os.SystemClock.uptimeMillis() + 200);
+            return;
+        }
         if (onDevice && code != SpeechRecognizer.ERROR_RECOGNIZER_BUSY) viOnDevice = false;   // lần sau đi thẳng Vosk
         if (onDevice || SpeechHelper.shouldFallback(code)) {
             startVosk(onDevice ? "Máy chưa có gói tiếng Việt ngoại tuyến" : SpeechHelper.message(code) + " (mã " + code + ")");
@@ -250,10 +268,14 @@ final class VoiceEngine {
     }
 
     // ================= Vosk (chạy trên máy, dự phòng) =================
+    // Tự ghi âm bằng AudioRecord thay cho SpeechService của thư viện Vosk: luồng ghi âm của thư viện ném lỗi
+    // ("error reading audio buffer") ở luồng nền khi micro bị gián đoạn -> văng app. Ở đây mọi lỗi đều được bắt
+    // và báo thành thông báo; Recognizer chỉ được giải phóng bởi chính luồng ghi âm sau khi nó dừng hẳn.
 
     private void startVosk(String reason) {
         engine = "vosk";
-        if (reason != null) cb.onInfo(reason + ", chuyển sang nhận giọng Vosk");
+        boolean afterAndroid = reason != null;
+        if (afterAndroid) cb.onInfo(reason + ", chuyển sang nhận giọng Vosk");
         if (voskModel == null) cb.onState("loading");
         loadVosk(ctx, () -> {
             if (!active) return;
@@ -261,17 +283,122 @@ final class VoiceEngine {
                 finish(null, null, "Không nạp được nhận giọng trên máy" + (voskLoadError != null ? ": " + voskLoadError : ""), -2);
                 return;
             }
-            try {
-                Recognizer rec = new Recognizer(voskModel, 16000.0f);
-                rec.setMaxAlternatives(3);
-                vosk = new SpeechService(rec, 16000.0f);
-                vosk.startListening(voskListener);
-                cb.onState("listening");
-            } catch (Exception e) {
-                SpeechHelper.recordError(ctx, "Vosk: mở micro", SpeechHelper.stack(e));
-                finish(null, null, "Không mở được micro, thử lại sau giây lát", -3);
-            }
+            // Vừa thử nhận giọng của Android: chờ một chút để dịch vụ đó nhả micro hẳn
+            MAIN.postAtTime(this::beginVosk, this, SystemClock.uptimeMillis() + (afterAndroid ? 400 : 0));
         });
+    }
+
+    private void beginVosk() {
+        if (!active) return;
+        if (ctx.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            finish(null, null, SpeechHelper.message(SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS), SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS);
+            return;
+        }
+        AudioRecord ar = null;
+        Recognizer rec = null;
+        try {
+            int min = AudioRecord.getMinBufferSize(RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
+            ar = new AudioRecord(MediaRecorder.AudioSource.VOICE_RECOGNITION, RATE, AudioFormat.CHANNEL_IN_MONO,
+                AudioFormat.ENCODING_PCM_16BIT, Math.max(min, RATE));            // đệm ≥ 0,5 giây
+            if (ar.getState() != AudioRecord.STATE_INITIALIZED) throw new IllegalStateException("AudioRecord chưa khởi tạo được");
+            rec = new Recognizer(voskModel, RATE);
+            rec.setMaxAlternatives(3);
+            ar.startRecording();
+            if (ar.getRecordingState() != AudioRecord.RECORDSTATE_RECORDING) throw new IllegalStateException("micro không ghi âm được");
+            loop = new VoskLoop(ar, rec);
+            loop.start();
+            cb.onState("listening");
+        } catch (Throwable e) {
+            SpeechHelper.recordError(ctx, "Vosk: mở micro", SpeechHelper.stack(e));
+            if (ar != null) try { ar.release(); } catch (Throwable ignored) { }
+            if (rec != null) try { rec.close(); } catch (Throwable ignored) { }
+            finish(null, null, "Không mở được micro (có thể ứng dụng khác đang dùng), thử lại sau giây lát", -3);
+        }
+    }
+
+    private static final int RATE = 16000;
+
+    /** Luồng ghi âm + nhận dạng của Vosk. Tự dừng khi ngắt giọng, quá 15 giây, hoặc 8 giây không nghe thấy gì. */
+    private final class VoskLoop extends Thread {
+        private final AudioRecord ar;
+        private final Recognizer rec;
+        volatile boolean run = true;
+
+        VoskLoop(AudioRecord ar, Recognizer rec) {
+            super("FinBudVosk");
+            this.ar = ar;
+            this.rec = rec;
+        }
+
+        @Override
+        public void run() {
+            short[] buf = new short[RATE / 10];                         // 0,1 giây mỗi lần đọc
+            long t0 = SystemClock.uptimeMillis();
+            boolean heard = false;
+            String out = null, err = null;
+            try {
+                while (run) {
+                    int n = ar.read(buf, 0, buf.length);
+                    if (n < 0) throw new IllegalStateException("đọc micro lỗi (mã " + n + ")");
+                    if (n == 0) continue;
+                    if (rec.acceptWaveForm(buf, n)) {
+                        String r = rec.getResult();
+                        if (hasText(r)) {
+                            out = r;
+                            break;
+                        }
+                    } else {
+                        String p = partialText(rec.getPartialResult());
+                        if (!p.isEmpty()) {
+                            heard = true;
+                            MAIN.post(() -> { if (loop == this && active) cb.onPartial(p); });
+                        }
+                    }
+                    long el = SystemClock.uptimeMillis() - t0;
+                    if (el > 15000 || (!heard && el > 8000)) break;
+                }
+                if (out == null) out = rec.getFinalResult();
+            } catch (Throwable e) {
+                err = SpeechHelper.stack(e);
+            } finally {
+                try { ar.stop(); } catch (Throwable ignored) { }
+                try { ar.release(); } catch (Throwable ignored) { }
+                try { rec.close(); } catch (Throwable ignored) { }
+            }
+            final String fOut = out, fErr = err;
+            MAIN.post(() -> loopEnded(this, fOut, fErr));
+        }
+    }
+
+    private void loopEnded(VoskLoop l, String out, String err) {
+        if (loop != l) return;                                         // đã huỷ / đã có lượt mới
+        loop = null;
+        if (!active) return;
+        if (err != null) {
+            SpeechHelper.recordError(ctx, "Vosk: ghi âm", err);
+            finish(null, null, "Micro bị gián đoạn, bạn thử lại nhé", -5);
+        } else if (out == null || !deliver(out)) {
+            finish(null, null, SpeechHelper.message(SpeechRecognizer.ERROR_NO_MATCH), SpeechRecognizer.ERROR_NO_MATCH);
+        }
+    }
+
+    private static boolean hasText(String json) {
+        try {
+            JSONObject o = new JSONObject(json);
+            if (!o.optString("text", "").trim().isEmpty()) return true;
+            JSONArray a = o.optJSONArray("alternatives");
+            if (a != null) for (int i = 0; i < a.length(); i++) if (!a.getJSONObject(i).optString("text", "").trim().isEmpty()) return true;
+        } catch (Exception ignored) {
+        }
+        return false;
+    }
+
+    private static String partialText(String json) {
+        try {
+            return new JSONObject(json).optString("partial", "").trim();
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     private static void loadVosk(Context ctx, Runnable then) {
@@ -306,38 +433,6 @@ final class VoiceEngine {
     static String voskStatus() {
         return voskModel != null ? "đã nạp" : voskLoading ? "đang nạp" : voskLoadError != null ? "lỗi: " + voskLoadError : "chưa nạp";
     }
-
-    private final org.vosk.android.RecognitionListener voskListener = new org.vosk.android.RecognitionListener() {
-        @Override
-        public void onPartialResult(String hypothesis) {
-            try {
-                String p = new JSONObject(hypothesis).optString("partial", "").trim();
-                if (active && !p.isEmpty()) cb.onPartial(p);
-            } catch (Exception ignored) {
-            }
-        }
-
-        @Override
-        public void onResult(String hypothesis) {          // ngắt giọng: lấy câu này làm kết quả
-            deliver(hypothesis);
-        }
-
-        @Override
-        public void onFinalResult(String hypothesis) {     // sau khi Dừng
-            if (!deliver(hypothesis) && active) finish(null, null, SpeechHelper.message(SpeechRecognizer.ERROR_NO_MATCH), SpeechRecognizer.ERROR_NO_MATCH);
-        }
-
-        @Override
-        public void onError(Exception e) {
-            SpeechHelper.recordError(ctx, "Vosk", SpeechHelper.stack(e));
-            finish(null, null, "Nhận giọng trên máy gặp lỗi", -4);
-        }
-
-        @Override
-        public void onTimeout() {
-            finish(null, null, SpeechHelper.message(SpeechRecognizer.ERROR_SPEECH_TIMEOUT), SpeechRecognizer.ERROR_SPEECH_TIMEOUT);
-        }
-    };
 
     /** Lấy câu (và tối đa 3 phương án) từ JSON của Vosk; trả false nếu rỗng. */
     private boolean deliver(String hypothesis) {
