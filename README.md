@@ -85,6 +85,13 @@ flowchart LR
 * **OCR offline:** Plugin `ReceiptScanner` dùng Google ML Kit (bộ chữ Latin, gồm tiếng Việt), model đóng gói sẵn trong APK nên quét được khi không có mạng.
 * **Trích xuất thông minh (`receipt-engine.js`):** gộp các ô chữ thành từng hàng, chấm điểm hàng "Tổng cộng / Thanh toán", loại trừ hàng "Tiền mặt / Tiền thừa / Giảm giá", và kiểm tra chéo *tiền khách đưa − tiền thừa = tổng*. Số bị OCR đọc nhầm (ví dụ `1O5,OOO`) được sửa lại.
 * **Phân loại chi tiêu:** dùng chung bộ phân loại với Nói / gõ, dựa trên tên cửa hàng và nội dung hóa đơn.
+* **Các món trên hóa đơn và xác nhận tổng tiền** (luật chuyển từ đồ án [QuetHoaDon](https://github.com/CaoLePhucThinh2203/QuetHoaDon)
+  của nhóm, `www/receipt-rules.js`): đọc từng dòng hàng (tên, số lượng, đơn giá, thành tiền, dòng giảm giá) sao cho
+  số lượng × đơn giá = thành tiền. Khi tổng các món **bằng một số in trên hóa đơn**, số đó được nhận là tổng tiền (theo đo
+  của QuetHoaDon, 42/44 lần "khớp tổng" là đúng) và app không hỏi lại. Danh sách món hiện ngay dưới kết quả quét.
+* **Ngày giờ, tổng tiền, tên cửa hàng** (cũng từ QuetHoaDon): ghép ngày bị OCR tách (`20/09` + `2019`), lấy giờ cạnh ngày,
+  tìm tổng sau từ khoá "tổng cộng / thanh toán…" và ghép số bị tách (`107,0` + `,000`), bỏ số điện thoại / nhãn dính
+  cuối tên cửa hàng.
 * **Khi chưa chắc chắn:** app hiện 2–3 số tiền ứng viên để chạm chọn và nhắc kiểm tra kỹ.
 * **Ngày trên hóa đơn:** được dùng làm ngày giao dịch nếu không quá 45 ngày, nếu cũ hơn thì ghi theo hôm nay.
 * **Kiểm tra độ nét ảnh** (Laplacian) cảnh báo khi ảnh mờ.
@@ -148,10 +155,12 @@ FinBud-app/
 ├─ www/
 │  ├─ index.html               # Giao diện + logic ứng dụng
 │  ├─ receipt-engine.js        # Trích tổng tiền / ngày / người bán, phân loại danh mục
+│  ├─ receipt-rules.js         # Luật từ QuetHoaDon: dòng hàng, khớp tổng, ngày giờ, làm sạch tên
 │  ├─ receipt_lexicon.json     # Từ khóa + danh mục
 │  └─ receipt_model.json       # Mô hình trích xuất hóa đơn + phân loại danh mục
 ├─ tools/category/             # Sinh dữ liệu, train, đánh giá bộ phân loại danh mục
 ├─ tools/widget/               # Kiểm tra QuickParser + VoiceNumbers (Java) khớp với JS
+├─ tools/receipt-rules/        # Kiểm tra receipt-rules.js khớp luật Python của QuetHoaDon
 ├─ android/app/src/main/
 │  ├─ assets/model-vn/         # Model Vosk tiếng Việt (+ file uuid)
 │  ├─ assets/zipformer-vi/     # Mô hình mới: Zipformer tiếng Việt 30M int8 (+ LICENSE.txt)
@@ -230,7 +239,8 @@ Cần chạy qua server để app tải được `receipt_model.json`; mở th�
 - [x] **Home Screen Widget:** con số chi tiêu ngày trên màn hình chính, nhập nhanh không cần mở app
 - [x] **Mô hình nhận giọng mới** (Zipformer tiếng Việt, chạy trên máy), Vosk làm lựa chọn thay thế
 - [ ] **Đo độ chính xác giọng nói:** đọc bộ câu mẫu với từng mô hình, so tỷ lệ đúng số tiền và danh mục
-- [ ] **Bóc tách từng dòng sản phẩm:** mở rộng pipeline CRAFT + VietOCR / mô hình hiểu bố cục để lấy chi tiết món hàng
+- [x] **Đọc dòng hàng trên hóa đơn** bằng luật của QuetHoaDon, xác nhận tổng tiền khi tổng các món khớp
+- [ ] **Dùng mô hình LayoutXLM của QuetHoaDon làm "thầy"** để train lại mô hình nhẹ trong `receipt_model.json`
 - [ ] **Bảo mật & đồng bộ:** mã hóa cơ sở dữ liệu AES-256, sao lưu và đồng bộ đa thiết bị
 
 ---

@@ -88,6 +88,45 @@
     const best = Object.keys(sc).reduce((a, b) => (sc[b] > sc[a] ? b : a));
     return sc[best] > 0 ? best : "other";
   }
+  /* Luật chuyển từ đồ án QuetHoaDon (www/receipt-rules.js), chạy SAU phần trên (phần trên vẫn khớp notebook):
+     dòng hàng + kiểm tra tổng các dòng = tổng in trên hóa đơn; tổng theo từ khoá; ngày giờ; làm sạch tên cửa hàng. */
+  const rulesLib = () => (typeof window !== "undefined" && window.ReceiptRules) ||
+    (typeof require === "function" ? (() => { try { return require("./receipt-rules.js"); } catch (e) { return null; } })() : null);
+  function isoDate(dmy) {
+    const [d, m, y] = dmy.split("/").map(Number);
+    return m >= 1 && m <= 12 && y >= 2015 && y <= 2035 && d >= 1 && d <= new Date(y, m, 0).getDate()
+      ? y + "-" + String(m).padStart(2, "0") + "-" + String(d).padStart(2, "0") : "";
+  }
+  function applyRules(o, lines) {
+    const R = rulesLib();
+    if (!R) return o;
+    const { words, boxes } = R.toWords(lines);
+    const dt = R.readDatetime(words);                                       // "dd/mm/yyyy hh:mm" hoặc chỉ ngày
+    if (dt) {
+      const [d, t] = dt.split(" "), iso = isoDate(d);
+      if (iso) { o.date = iso; if (t) o.time = t; }
+    }
+    const rt = R.ruleTotal(words), rtv = rt ? R.normalizeAmount(rt) : null; // số lớn nhất sau "tổng cộng / thanh toán…"
+    const it = R.extractItems(words, boxes);
+    const totals = [...it.summary_amounts, rtv, ...(o.candidates || []), o.total].filter(Boolean);
+    const chk = R.checkItems(it.items, totals);
+    if (chk.status === "verified") {                                        // tổng các món = một số in trên hóa đơn
+      const T = totals.find(t => t === chk.sum || t === chk.sum_without_discounts);
+      o.total = T;
+      o.conf = Math.max(o.conf || 0, 0.95);
+      o.candidates = [T, ...(o.candidates || []).filter(x => x !== T)].slice(0, 3);
+    } else if (!o.total && rtv) {
+      o.total = rtv;
+      o.candidates = [rtv];
+      o.conf = 0.5;
+    } else if (rtv && o.candidates && !o.candidates.includes(rtv)) {
+      o.candidates = [...o.candidates, rtv].slice(0, 3);
+    }
+    o.items = it.items;                                                     // [{name, quantity, unit_price, amount, line_ok, discount}]
+    o.itemsCheck = chk;                                                     // {status: "verified" | "unverified", sum, ...}
+    if (o.seller) o.seller = R.cleanField("SELLER", o.seller) || o.seller;
+    return o;
+  }
   const E = {
     ready: null, mode: () => (MODEL && MODEL.kie ? "model" : "rules"),
     init(lex, model) { LEX = lex; MODEL = model || null; },
@@ -97,10 +136,11 @@
       const rows = mergeRows(lines.map(l => ({ text: l.text, bbox: [l.left, l.top, l.right, l.bottom] })));
       if (!rows.length) return null;
       const o = extractRows(rows, W, H);
+      applyRules(o, lines.map(l => ({ text: String(l.text || ""), bbox: [l.left, l.top, l.right, l.bottom] })));
       o.category = categorize(o.seller + " " + rows.slice(0, 60).map(r => r.text).join(" ")); o.mode = E.mode();
       return o;
     },
-    _t: { mergeRows, extractRows, categorize, amounts, findDate },
+    _t: { mergeRows, extractRows, applyRules, categorize, amounts, findDate },
   };
   const get = u => fetch(u).then(r => (r.ok ? r.json() : null)).catch(() => null);
   E.ready = typeof fetch === "function" ? Promise.all([get("receipt_lexicon.json"), get("receipt_model.json")]).then(([l, m]) => { if (l) E.init(l, m); return E; }) : Promise.resolve(E);
