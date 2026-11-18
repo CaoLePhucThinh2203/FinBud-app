@@ -92,6 +92,9 @@ flowchart LR
 * **Ngày giờ, tổng tiền, tên cửa hàng** (cũng từ QuetHoaDon): ghép ngày bị OCR tách (`20/09` + `2019`), lấy giờ cạnh ngày,
   tìm tổng sau từ khoá "tổng cộng / thanh toán…" và ghép số bị tách (`107,0` + `,000`), bỏ số điện thoại / nhãn dính
   cuối tên cửa hàng.
+* **Tên cửa hàng:** bỏ qua các dòng tiêu đề / nhãn mà mô hình hay chọn nhầm ("HÓA ĐƠN BÁN LẺ", "PHIẾU TÍNH TIỀN", "Thu ngân…",
+  "Bàn 5"…) để lấy ứng viên kế tiếp; nếu không còn ứng viên thì lấy dòng đầu trông giống tên cửa hàng (đã bỏ số điện thoại
+  dính cuối). Không tìm được thì để trống thay vì ghi tiêu đề. Kiểm tra: `node tools/receipt-rules/check_seller.js`.
 * **Khi chưa chắc chắn:** app hiện 2–3 số tiền ứng viên để chạm chọn và nhắc kiểm tra kỹ.
 * **Ngày trên hóa đơn:** được dùng làm ngày giao dịch nếu không quá 45 ngày, nếu cũ hơn thì ghi theo hôm nay.
 * **Kiểm tra độ nét ảnh** (Laplacian) cảnh báo khi ảnh mờ.
